@@ -2,7 +2,7 @@
 title: "vanderHoop_Animove"
 author: "Julie van der Hoop"
 date: "August 23, 2017"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
