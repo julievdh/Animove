@@ -13,8 +13,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This will be info on what we've done at Animove. 
 
+Here are all the packages to install: 
+install.packages(c("moveVis","pbs","dplyr","RStoolbox","move","ggmap","TwoStepCLogit","pbs","dplyr",'lubridate","fdrtool","circular","CircStats"),dependencies = T)
+
 ```{r cars}
-summary(cars)
+library(moveVis)
+get_imconvert
 ```
 
 ## Including Plots
