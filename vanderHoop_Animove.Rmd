@@ -9,17 +9,23 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This will be info on what we've done at Animove. 
-
+# Animove Notes - Aug 27 - 9 Sept  2017
 Here are all the packages to install: 
 install.packages(c("moveVis","pbs","dplyr","RStoolbox","move","ggmap","TwoStepCLogit","pbs","dplyr",'lubridate","fdrtool","circular","CircStats"),dependencies = T)
 
+# Lecture Notes - Kami 28 Aug 2017
+Lagrangian versus Eulerian methods: moving versus static. 
+Lagrangian observe moving entity; eulerian observe space. 
+Movement: Sequence of Location in time
+
+Example data sets: Bat radio tracking data, African buffalo GPS data, "Leo" the vulture, "Leroy" and "Ricky" the fishers from Albany. --> all on movebank.org and data associated with R library move. 
+
+## Loading Datasets
 ```{r cars}
 library(moveVis)
-get_imconvert
+
 ```
+
 
 ## Including Plots
 
