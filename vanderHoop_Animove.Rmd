@@ -20,9 +20,13 @@ Movement: Sequence of Location in time
 
 Example data sets: Bat radio tracking data, African buffalo GPS data, "Leo" the vulture, "Leroy" and "Ricky" the fishers from Albany. --> all on movebank.org and data associated with R library move. 
 
+This is a test
+
 ## Loading Datasets
 ```{r cars}
-library(moveVis)
+library("move")
+# setwd("...")
+# Bats <- move(...)
 
 ```
 
