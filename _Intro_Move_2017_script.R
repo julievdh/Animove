@@ -68,13 +68,13 @@ library('R.matlab')
 dtagfile <- readMat('./data/sw17_193atrk.mat')
 
 # convert into a data frame
-dtagfile$timestamp <- as.POSIXct((dtagfile$t - 719529)*86400, origin = "1970-01-01", tz = "UTC",format ="%Y-%m-%d %H:%M:%S")
-
+dtagfile$timestamp <- as.POSIXct((dtagfile$t - 719529)*86400, origin = "1970-01-01 00:00:00", tz = "UTC",format ="%Y-%m-%d %H:%M:%S")
+dtagfile1 <- as.data.frame(dtagfile)
 # convert MATLAB time time
-# sw17_193a <- move(x=dtagfile$lon,y=dtagfile$lat,
-                  # time=dtagfile$timestamp,
-                  # data=dtagfile,proj=CRS("+proj=longlat"),
-                  # animal="sw17_193a", sensor="gps")
+sw17_193a <- move(x=dtagfile1$lon,y=dtagfile1$lat,
+                  time=dtagfile1$timestamp,
+                  data=dtagfile1,proj=CRS("+proj=longlat"),
+                  animal="sw17_193a", sensor="gps")
 
 # convert a data frame into a move object
 Leroy <- move(x=file$location.long,y=file$location.lat,
@@ -340,7 +340,7 @@ str(acc)
 getMovebankSensors(study="MPIO white stork lifetime tracking data (2013-2014)", login=cred)[1:10,]
 
 ## ----all available sensor types on Movebank-----------------------------------------------------------
-getMovebankSensors(login=cred)[,3:5]
+getMovebankSensors(login=cred)[,3:5] 
 
 
 ## ---- download data from Movebank Data Repository -----------------------------------------------------
