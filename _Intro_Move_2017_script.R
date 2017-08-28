@@ -20,8 +20,8 @@ Leo <- move("data/Leo-65545.csv.gz")
 
 ## ---- 2. Directly downloading data from Movebank -------------------------------------------
 # store the movebank credentials
-cred <- movebankLogin(username="R-Book", password="Obstberg1")
-cred <- movebankLogin()
+cred <- movebankLogin(username="jvanderhoop", password="RezTm4SUKq")
+# cred <- movebankLogin() # alternative if you want to share script and not your password
 
 # search for studies using keywords
 searchMovebankStudies(x="Parti-colored bat", login=cred)
@@ -48,7 +48,7 @@ Bats
 
 # get only bat "191"
 bat191 <- getMovebankData(study="Parti-colored bat Safi Switzerland",
-                         animalName="191", login=cred)
+                         animalName="191", login=cred) # could also do c("191","21") for more
 bat191
 
 # get data for a specific time range e.g. between "2002-06-02 23:06:15"
@@ -64,6 +64,17 @@ bats.subset
 # read the data and store in a data frame
 file <- read.table(system.file("extdata","leroy.csv.gz", package="move"), 
                    header=TRUE, sep=",", dec=".")
+library('R.matlab')
+dtagfile <- readMat('./data/sw17_193atrk.mat')
+
+# convert into a data frame
+dtagfile$timestamp <- as.POSIXct((dtagfile$t - 719529)*86400, origin = "1970-01-01", tz = "UTC",format ="%Y-%m-%d %H:%M:%S")
+
+# convert MATLAB time time
+# sw17_193a <- move(x=dtagfile$lon,y=dtagfile$lat,
+                  # time=dtagfile$timestamp,
+                  # data=dtagfile,proj=CRS("+proj=longlat"),
+                  # animal="sw17_193a", sensor="gps")
 
 # convert a data frame into a move object
 Leroy <- move(x=file$location.long,y=file$location.lat,
@@ -197,9 +208,9 @@ distance(Leroy)[1:5]
 ## ----subseting ---------------------------------------------------------------------------------
 # for example, lets make a subset with the locations
 # with the highest 5% of the speeds
-Leroy$speed <- c(speed(Leroy), NA)
+Leroy$speed <- c(speed(Leroy), NA) # adding this NA makes the vector the same length as the locations
 Leroy1 <- Leroy[!is.na(Leroy$speed),]
-LeroyFast <- Leroy[Leroy1$speed > quantile(Leroy1$speed, probs=0.95),]
+LeroyFast <- Leroy[Leroy1$speed > quantile(Leroy1$speed, probs=0.95),] # take the 95th percentile (fastest speeds)
 LeroyFast
 
 ## ---- basic ploting --------------------------------------------------------------------------
@@ -221,8 +232,8 @@ xlab('Longitude')+ylab('Latitude')
 
 # current version on cran of "ggmap" seems to be causing some trouble,
 # try installing ggmap from github:
-library("devtools")
-devtools::install_github("dkahle/ggmap")
+# library("devtools")
+# devtools::install_github("dkahle/ggmap")
 
 
 ## ---- movestack -----------------------------------------------------------------------------
@@ -237,7 +248,7 @@ CillaGabs <- buffalo[[c("Cilla",'Gabs')]]
 CillaGabs
 
 ## ---- split a movestack --------------------------------------------------------------------------
-buffalo.split <- split(buffalo)
+buffalo.split <- split(buffalo) # this can be useful for L-apply (for-loops)
 
 ## ---- stack a list of move objects ---------------------------------------------------------
 buffalo.stk <- moveStack(buffalo.split, forceTz="UTC")
@@ -262,7 +273,7 @@ Leroy$DayTime[LeroyTs<Leroy$sunset & LeroyTs>Leroy$sunrise] <- "Day"
 
 table(Leroy$DayTime)
 
-LeroyBurst<-burst(Leroy,f=Leroy$DayTime[-n.locs(Leroy)])
+LeroyBurst<-burst(Leroy,f=Leroy$DayTime[-n.locs(Leroy)]) # burst does segmentation. Segments are 1 shorter than locations.
 LeroyBurst
 
 plot(LeroyBurst,type="o", lwd=2, pch=20, cex=.7)
@@ -270,14 +281,14 @@ plot(LeroyBurst,type="o", lwd=2, pch=20, cex=.7)
 
 ## ---- Outputting data-------------------------------------------------------------------------
 #save the move object for later
-save(buffalo, file="buffalo_cleaned.Rdata")
+save(buffalo, file="./data/buffalo_cleaned.Rdata")
 
 # save as a text file
 buffaloDF <- as.data.frame(buffalo)
-write.table(buffaloDF, file="buffalo_cleaned.csv", sep=",", row.names = FALSE)
+write.table(buffaloDF, file="./data/buffalo_cleaned.csv", sep=",", row.names = FALSE)
 
 # save as a shape file
-writeOGR(buffalo, "./", layer="buffalo", driver="ESRI Shapefile")
+# writeOGR(buffalo, "./", layer="buffalo", driver="ESRI Shapefile")
 
 ## ----kml or kmz of movestack ---------------------------------------------------------------
 library("plotKML")
