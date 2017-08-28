@@ -7,7 +7,7 @@ sessionInfo()
 
 
 ## ---- 1. Reading in a .csv file downloaded from a Movebank ----------------------------------
-setwd("/home/anne/ownCloud/Animove17_SafiLab/LectureAnne/")
+setwd("/Users/julievanderhoop/Documents/R/Animove/Animove/")
 Bats <- move("./data/Parti-colored bat Safi Switzerland.csv")
 Bats
 
