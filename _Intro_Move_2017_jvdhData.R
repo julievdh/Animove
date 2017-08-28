@@ -8,68 +8,31 @@ sessionInfo()
 
 ## ---- 1. Reading in a .csv file downloaded from a Movebank ----------------------------------
 setwd("/Users/julievanderhoop/Documents/R/Animove/Animove/")
-Bats <- move("./data/Parti-colored bat Safi Switzerland.csv")
-Bats
-
-## ---- also read tar-compressed csv exports or EvData .zip files -----------------------------
-file.info("data/Leo-65545.csv")$size
-file.info("data/Leo-65545.csv.gz")$size
-
-Leo <- move("data/Leo-65545.csv.gz")
 
 
 ## ---- 2. Directly downloading data from Movebank -------------------------------------------
 # store the movebank credentials
-cred <- movebankLogin(username="jvanderhoop", password="RezTm4SUKq")
+# cred <- movebankLogin(username="jvanderhoop", password="RezTm4SUKq")
 # cred <- movebankLogin() # alternative if you want to share script and not your password
-
-# search for studies using keywords
-searchMovebankStudies(x="Parti-colored bat", login=cred)
-
-#### ---- set the curlHandle if necessary ---------------------------#######
-curl <- getCurlHandle()
-options(RCurlOptions = list(capath = system.file("CurlSSL", "cacert.pem",
-                                                 package = "RCurl"),
-                            ssl.verifypeer = FALSE, ssl.verifyhost = FALSE))
-curlSetOpt(.opts = list(proxy = 'proxyserver:port'), curl = curl)
-##### ---------------------------------------------------------------######
-
-## ---- browse the database --------------------------------------------------------------
-# get the meta data of the study
-getMovebankStudy(study="Parti-colored bat Safi Switzerland",login=cred)
-
-# check for information of the animals
-getMovebankAnimals(study="Parti-colored bat Safi Switzerland",login=cred)[1:3,]
-
-## ----Download the location data ------------------------------------------------------
-# get the all data
-Bats <- getMovebankData(study="Parti-colored bat Safi Switzerland", login=cred)
-Bats
-
-# get only bat "191"
-bat191 <- getMovebankData(study="Parti-colored bat Safi Switzerland",
-                         animalName="191", login=cred) # could also do c("191","21") for more
-bat191
 
 # get data for a specific time range e.g. between "2002-06-02 23:06:15"
 # and "2002-06-11 22:18:25". Time format: 'yyyyMMddHHmmssSSS'
-bats.subset <- getMovebankData(study="Parti-colored bat Safi Switzerland",
-                              login=cred,timestamp_start="20020602230615000",
-                              timestamp_end="20020611221825000")
-bats.subset
+# bats.subset <- getMovebankData(study="Parti-colored bat Safi Switzerland",
+#                              login=cred,timestamp_start="20020602230615000",
+#                              timestamp_end="20020611221825000")
+# bats.subset
 
 
 
 ## ---- 3. Creating a move object from any data set: ------------------------------------
 # read the data and store in a data frame
-file <- read.table(system.file("extdata","leroy.csv.gz", package="move"), 
-                   header=TRUE, sep=",", dec=".")
+
 library('R.matlab')
 mymoveobjects<-list()
 # dtagfile <- readMat('./data/sw17_193atrk.mat')
-myfilenames<-c("./data/sw17_193atrk.mat","./data/sw17_196atrk.mat","./data/sw17_204atrk.mat","./data/sw17_225atrk.mat")
+myfilenames<-c("sw17_193a","sw17_196a","sw17_204a","sw17_225a")
 for(i in myfilenames){
-dtagfile <- readMat(i)
+dtagfile <- readMat(paste('./data/',i,'trk.mat',sep=''))
 # convert into a data frame
 dtagfile$timestamp <- as.POSIXct((dtagfile$t - 719529)*86400, origin = "1970-01-01 00:00:00", tz = "UTC",format ="%Y-%m-%d %H:%M:%S")
 dtagfile1 <- as.data.frame(dtagfile)
@@ -84,27 +47,6 @@ mymoveobjects[[i]]<-dtagimport
 
 # make a move stack 
 mymovestack <- moveStack(mymoveobjects, forceTz="UTC")
-
-# convert a data frame into a move object
-Leroy <- move(x=file$location.long,y=file$location.lat,
-              time=as.POSIXct(file$timestamp,format="%Y-%m-%d %H:%M:%S",tz="UTC"),
-              data=file,proj=CRS("+proj=longlat"),
-              animal="Leroy", sensor="gps")
-Leroy
-
-## ----computer time zome ----------------------------------------------------------------
-Sys.time()
-
-
-## ---- check projection -------------------------------------------------------------------
-projection(Leroy)
-
-
-## ---- reproject -----------------------------------------------------------------------
-LeroyProj <- spTransform(Leroy, CRSobj="+proj=utm +zone=18 +north +ellps=WGS84 +datum=WGS84")
-projection(LeroyProj)
-
-
 
 
 ## ---- buffalo data -----------------------------------------------------------------------
@@ -133,7 +75,7 @@ table(unlist(lapply(dup,function(x)length(x))))
 
 buffalo.clean <- buffalo.df
 
-# A while loop will ensure that the loop continues untill each duplicate is removed
+# A while loop will ensure that the loop continues until each duplicate is removed
 ## ==> loop starts here
 while(length(dup <- getDuplicatedTimestamps(buffalo.clean))>0){
 allrowsTOremove <- lapply(1:length(dup), function(x){
@@ -279,19 +221,19 @@ plot(buffalo, type="l")
 
 ## ---- Segmentation ----------------------------------------------------------------------------------
 library("maptools")
-LeroyTs <- timestamps(Leroy)
-Leroy$sunrise<-sunriset(Leroy,LeroyTs,POSIXct.out=T, direction='sunrise')$time
-Leroy$sunset<-sunriset(Leroy,LeroyTs,POSIXct.out=T, direction='sunset')$time
+mymoveobjects$sw17_196aTs <- timestamps(mymoveobjects$sw17_196a)
+mymoveobjects$sw17_196a$sunrise<-sunriset(mymoveobjects$sw17_196a,mymoveobjects$sw17_196aTs,POSIXct.out=T, direction='sunrise')$time
+mymoveobjects$sw17_196a$sunset<-sunriset(mymoveobjects$sw17_196a,mymoveobjects$sw17_196aTs,POSIXct.out=T, direction='sunset')$time
 
-Leroy$DayTime <- "Night"
-Leroy$DayTime[LeroyTs<Leroy$sunset & LeroyTs>Leroy$sunrise] <- "Day"
+mymoveobjects$sw17_196a$DayTime <- "Night"
+mymoveobjects$sw17_196a$DayTime[mymoveobjects$sw17_196aTs<mymoveobjects$sw17_196a$sunset & mymoveobjects$sw17_196aTs>mymoveobjects$sw17_196a$sunrise] <- "Day"
 
-table(Leroy$DayTime)
+table(mymoveobjects$sw17_196a$DayTime)
 
-LeroyBurst<-burst(Leroy,f=Leroy$DayTime[-n.locs(Leroy)]) # burst does segmentation. Segments are 1 shorter than locations.
-LeroyBurst
+mymoveobjects$sw17_196aBurst<-burst(mymoveobjects$sw17_196a,f=mymoveobjects$sw17_196a$DayTime[-n.locs(mymoveobjects$sw17_196a)]) # burst does segmentation. Segments are 1 shorter than locations.
+mymoveobjects$sw17_196aBurst
 
-plot(LeroyBurst,type="o", lwd=2, pch=20, cex=.7)
+plot(mymoveobjects$sw17_196aBurst,type="o", lwd=2, pch=20, cex=.7)
 
 
 ## ---- Outputting data-------------------------------------------------------------------------

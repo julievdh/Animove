@@ -13,30 +13,54 @@ knitr::opts_chunk$set(echo = TRUE)
 Here are all the packages to install: 
 install.packages(c("moveVis","pbs","dplyr","RStoolbox","move","ggmap","TwoStepCLogit","pbs","dplyr",'lubridate","fdrtool","circular","CircStats"),dependencies = T)
 
-# Lecture Notes - Kami 28 Aug 2017
-Lagrangian versus Eulerian methods: moving versus static. 
-Lagrangian observe moving entity; eulerian observe space. 
-Movement: Sequence of Location in time
+# Exercise to import our own data 28 Aug 2017
+Import sperm whale files over a loop. Import .mat files, convert to R data frame, correct timestamp from MATLAB to R. 
 
-Example data sets: Bat radio tracking data, African buffalo GPS data, "Leo" the vulture, "Leroy" and "Ricky" the fishers from Albany. --> all on movebank.org and data associated with R library move. 
-
-This is a test
-
-## Loading Datasets
-```{r cars}
+## Loading Data
+```{r}
 library("move")
-# setwd("...")
-# Bats <- move(...)
+library('R.matlab')
+setwd("/Users/julievanderhoop/Documents/R/Animove/Animove/")
 
+mymoveobjects<-list()
+# dtagfile <- readMat('./data/sw17_193atrk.mat')
+mymoveobjects<-list()
+# dtagfile <- readMat('./data/sw17_193atrk.mat')
+myfilenames<-c("sw17_193a","sw17_196a","sw17_204a","sw17_225a")
+for(i in myfilenames){
+dtagfile <- readMat(paste('./data/',i,'trk.mat',sep=''))
+# convert into a data frame
+dtagfile$timestamp <- as.POSIXct((dtagfile$t - 719529)*86400, origin = "1970-01-01 00:00:00", tz = "UTC",format ="%Y-%m-%d %H:%M:%S")
+dtagfile1 <- as.data.frame(dtagfile)
+# convert MATLAB time time
+dtagimport <- move(x=dtagfile1$lon,y=dtagfile1$lat,
+                  time=dtagfile1$timestamp,
+                  data=dtagfile1,proj=CRS("+proj=longlat"),
+                  animal="sw17_193a", sensor="gps")
+
+mymoveobjects[[i]]<-dtagimport
+}
 ```
 
+## Stack move objects
+```{r}
+mymovestack <- moveStack(mymoveobjects, forceTz="UTC")
+```
+## Plotting the data
 
-## Including Plots
+Regular plot 
 
-You can also embed plots, for example:
+```{r}
+plot(mymovestack)
+```
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+ggmap plot
+```{r}
+map<-get_map(bbox(extent(mymovestack)*2), source='google')
+dataDf<-as.data.frame(mymovestack)
+ggmap(map)+
+  geom_path(data=dataDf, aes(x=coords.x1, y=coords.x2))+
+  xlab('Longitude')+ylab('Latitude')
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
