@@ -28,25 +28,25 @@ setwd("/Users/julievanderhoop/Documents/R/Animove/Animove/")
 # read the data and store in a data frame
 
 library('R.matlab')
-mymoveobjects<-list()
+sw<-list()
 # dtagfile <- readMat('./data/sw17_193atrk.mat')
-myfilenames<-c("sw17_193a","sw17_196a","sw17_204a","sw17_225a")
-for(i in myfilenames){
+swfilenames<-c("sw17_193a","sw17_196a","sw17_204a","sw17_225a")
+for(i in swfilenames){
 dtagfile <- readMat(paste('./data/',i,'trk.mat',sep=''))
 # convert into a data frame
 dtagfile$timestamp <- as.POSIXct((dtagfile$t - 719529)*86400, origin = "1970-01-01 00:00:00", tz = "UTC",format ="%Y-%m-%d %H:%M:%S")
-dtagfile1 <- as.data.frame(dtagfile)
+dtagfile <- as.data.frame(dtagfile)
 # convert MATLAB time time
-dtagimport <- move(x=dtagfile1$lon,y=dtagfile1$lat,
-                  time=dtagfile1$timestamp,
-                  data=dtagfile1,proj=CRS("+proj=longlat"),
-                  animal="sw17_193a", sensor="gps")
+dtagimport <- move(x=dtagfile$lon,y=dtagfile$lat,
+                  time=dtagfile$timestamp,
+                  data=dtagfile,proj=CRS("+proj=longlat"),
+                  animal=i, sensor="gps")
 
-mymoveobjects[[i]]<-dtagimport
+sw[[i]]<-dtagimport
 }
 
 # make a move stack 
-mymovestack <- moveStack(mymoveobjects, forceTz="UTC")
+swstack <- moveStack(sw, forceTz="UTC")
 
 
 ## ---- buffalo data -----------------------------------------------------------------------
@@ -80,7 +80,7 @@ buffalo.clean <- buffalo.df
 while(length(dup <- getDuplicatedTimestamps(buffalo.clean))>0){
 allrowsTOremove <- lapply(1:length(dup), function(x){
   rown <- dup[[x]]
-   # checking if the positions are exaclty the same for all timestamps
+   # checking if the positions are exactly the same for all timestamps
   if(any(duplicated(buffalo.clean[rown,c("timestamp", "location.long", "location.lat", "individual.local.identifier")]))){
     dup.coor <- duplicated(buffalo.clean[rown,c("timestamp", "location.long", "location.lat", "individual.local.identifier")])
     rowsTOremove <- rown[dup.coor] # remove duplicates
