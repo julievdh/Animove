@@ -292,9 +292,9 @@ plot.fpt(Nu.fpt, radii, xlab = "Time", main = "Nu: ")
 plot.fpt(Tau.fpt, radii, xlab = "Time", main = "Tau: ")
 plot.fpt(BCRW.fpt, radii, xlab = "Time", main = "BCRW: ")
 
-Nu.lav = apply(Nu.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30))
-Tau.lav = apply(Tau.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30))
-BCRW.lav = apply(BCRW.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30)) # contains fewer observations?
+Nu.lav = apply(Nu.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 10))
+Tau.lav = apply(Tau.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 10))
+BCRW.lav = apply(BCRW.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 10)) # contains fewer observations?
 
 Nu.optseg = unlist(lapply(Nu.lav, function(x) { y = chooseseg(x, output = "opt")
 title(paste("Nu, opt seg =", y))
@@ -302,12 +302,19 @@ y}))
 Tau.optseg = unlist(lapply(Tau.lav, function(x) { y = chooseseg(x, output = "opt")
 title(paste("Tau, opt seg =", y))
 y}))
+BCRW.optseg = unlist(lapply(BCRW.lav, function(x) { y = chooseseg(x, output = "opt")
+title(paste("Tau, opt seg =", y))
+y}))
 
 ## ---- echo=FALSE, fig.width=15-------------------------------------------
 # put those edges on boundaries between clusters --  behavioural states
-par(mfrow = c(2, 3))
-temp = lapply(1:3, function(x) { findpath(Lamprey.lav[[x]], Lamprey.optseg[x])
-  title(paste("Raw: ", radii[x])) })
+par(mfrow = c(3, length(radii)))
+temp = lapply(1:5, function(x) { findpath(Nu.lav[[x]], Nu.optseg[x])
+  title(paste("Nu: ", radii[x])) })
+temp = lapply(1:5, function(x) { findpath(Tau.lav[[x]], Nu.optseg[x])
+  title(paste("Tau: ", radii[x])) })
+temp = lapply(1:5, function(x) { findpath(BCRW.lav[[x]], Nu.optseg[x])
+  title(paste("BCRW: ", radii[x])) })
 
 ## ---- eval=FALSE---------------------------------------------------------
 ## data(Multipaths)
