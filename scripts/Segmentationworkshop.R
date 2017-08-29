@@ -7,7 +7,7 @@ require(waddle)
 data(Lamprey)
 
 # smooth track for GPS error when stationary
-Lamprey.smooth = SmoothTrack(Lamprey, 3)
+Lamprey.smooth = SmoothTrack(Lamprey, 3) # 3-sample moving average - no padding
 
 ## ---- echo=FALSE---------------------------------------------------------
 plot.track(Lamprey, main = "Raw")
@@ -37,16 +37,18 @@ Lamprey.traj = as.ltraj(data.frame(Lamprey$X, Lamprey$Y), Lamprey$Time,
 Lamprey.smooth.traj = as.ltraj(data.frame(Lamprey.smooth$X, Lamprey.smooth$Y), Lamprey.smooth$Time, 
                    id = "Lamprey")
 
-radii = c(5, 10, 20)
-Lamprey.fpt = fpt(Lamprey.traj, radii)
+radii = c(5, 10, 20) # three different radii 
+Lamprey.fpt = fpt(Lamprey.traj, radii) # compare FPT for raw and smoothed
 Lamprey.smooth.fpt = fpt(Lamprey.smooth.traj, radii)
 
 ## ---- echo=FALSE, fig.width=15-------------------------------------------
 par(mfrow = c(2, 3))
 plot.fpt(Lamprey.fpt, radii, xlab = "Time", main = "Raw: ")
 plot.fpt(Lamprey.smooth.fpt, radii, xlab = "Time", main = "Smooth: ")
+# smoothed easier to make inference from (not surprisingly)
 
 ## ---- echo=FALSE, fig.width=15-------------------------------------------
+# how many clusters should there be? 
 Lamprey.lav = apply(Lamprey.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30))
 Lamprey.smooth.lav = apply(Lamprey.smooth.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30))
 
@@ -59,6 +61,7 @@ Lamprey.smooth.optseg = unlist(lapply(Lamprey.smooth.lav, function(x) { y = choo
                                                 y}))
 
 ## ---- echo=FALSE, fig.width=15-------------------------------------------
+# put those edges on boundaries between clusters --  behavioural states
 par(mfrow = c(2, 3))
 temp = lapply(1:3, function(x) { findpath(Lamprey.lav[[x]], Lamprey.optseg[x])
                                  title(paste("Raw: ", radii[x])) })
@@ -66,6 +69,8 @@ temp = lapply(1:3, function(x) { findpath(Lamprey.smooth.lav[[x]], Lamprey.smoot
                                  title(paste("Smooth: ", radii[x])) })
 
 ## ------------------------------------------------------------------------
+# Lamprey BPMM - Bayesian Partitioned Markov Model
+# first, regularize the data
 Lamprey.smooth.reg = InterpolatePoints(Lamprey.smooth, 2, "min")$Data
 Lamprey.smooth.traj = as.ltraj(data.frame(Lamprey.smooth.reg$X, Lamprey.smooth.reg$Y), 
                    Lamprey.smooth.reg$Time, id = "Lamprey")
@@ -73,46 +78,55 @@ Lamprey.smooth.traj = as.ltraj(data.frame(Lamprey.smooth.reg$X, Lamprey.smooth.r
 ## ---- echo=FALSE, fig.width=15-------------------------------------------
 plot(Lamprey.smooth.traj[[1]]$date, Lamprey.smooth.traj[[1]]$dist, xlab="", ylab="Distance (m)", type="l", col="darkgrey")
 points(Lamprey.smooth.traj[[1]]$date, Lamprey.smooth.traj[[1]]$dist, pch=19, cex=0.5)
-
+# can see unequal variances -- may need to transform data
 ## ---- fig.width=15-------------------------------------------------------
+# how many models do we need? 
 Lamprey.smooth.segments = Prep.segments(Lamprey.smooth.traj, units = "min", 
                             sd = 5, nmodels = 20)
 
 ## ---- fig.width=15-------------------------------------------------------
+# partition data into that many models
 Lamprey.smooth.partition = Partition.segments(Lamprey.smooth.segments)
 plot.segments(Lamprey.smooth.partition, 
               xlab="", ylab="Step length (m)")
 
 ## ---- fig.width=20-------------------------------------------------------
+# BPMM Diagnostics - things aren't actually going that well. 
 DiagPlot.segments(Lamprey.smooth.partition)
+# our step lengths are not normally distributed
+# the observed variance doesn't really fit the modeled variance
+# and autocorrelation is still an issue... 
 
 ## ------------------------------------------------------------------------
+# Lamprey BCPA - format data and set tuning parameters
 Lamprey.VT = GetVT(Lamprey.smooth, units = "min")
-windowsize = 30
-windowstep = 1
+windowsize = 30 
+windowstep = 1 
 K = 0.5
 
 ## ------------------------------------------------------------------------
-Lamprey.ws = WindowSweep(Lamprey.VT, "V*cos(Theta)", 
+Lamprey.ws = WindowSweep(Lamprey.VT, "V*cos(Theta)", # persistence velocity: speed*cos(turningangle)
                           windowsize, windowstep, 
                           plotme = FALSE, K = K, 
                           tau = TRUE, progress = FALSE)
 
 ## ---- fig.width=15-------------------------------------------------------
 plot(Lamprey.ws, type="smooth", threshold = 2, 
-     legend = FALSE)
+     legend = FALSE) # vertical bars = where behavioural change points
 
 ## ---- fig.width=15-------------------------------------------------------
-#plot(Lamprey.ws, type="flat", clusterwidth = 3, 
-#     legend = FALSE)
+# flat BCPA
+plot(Lamprey.ws, type="flat", clusterwidth = 3, 
+     legend = FALSE) 
 
 ## ---- fig.width=20-------------------------------------------------------
-DiagPlot(Lamprey.ws, "smooth")
+DiagPlot(Lamprey.ws, "smooth") # smooth diagnostics
 
 ## ---- fig.width=20-------------------------------------------------------
-#DiagPlot(Lamprey.ws, "flat")
+DiagPlot(Lamprey.ws, "flat") # flat diagnostics
 
 ## ---- echo = TRUE--------------------------------------------------------
+# Lamprey HMM
 require(moveHMM)
 Lamprey.hmm = prepData(Lamprey.smooth, type = "UTM", coordNames = c("X", "Y"))
 
@@ -123,9 +137,9 @@ summary(Lamprey.hmm)
 summary(Lamprey.hmm)
 
 ## ---- echo = TRUE--------------------------------------------------------
-weibullShape = c(3, 0.5)
+weibullShape = c(3, 0.5) # values based on data - two distributions to predict step length data
 weibullScale = c(10, 10)
-wcauchyMu = c(0, pi)
+wcauchyMu = c(0, pi) # one value is centered on zero, another is flat
 wcauchyRho = c(0.7, 0.2)
 
 doubleStateModel = fitHMM(Lamprey.hmm, nbStates = 2, 
@@ -135,10 +149,10 @@ doubleStateModel = fitHMM(Lamprey.hmm, nbStates = 2,
 
 
 ## ---- echo = FALSE-------------------------------------------------------
-doubleStateModel
+doubleStateModel # log likelihood value useful for comparing to different models
 
 ## ---- echo = FALSE-------------------------------------------------------
-CI(doubleStateModel)
+CI(doubleStateModel) # state 1 overlaps zero, state 2 doesn't... 
 
 ## ---- echo = FALSE, fig.width=5------------------------------------------
 plot(doubleStateModel)
@@ -147,6 +161,7 @@ plot(doubleStateModel)
 plotStates(doubleStateModel)
 
 ## ---- echo = TRUE--------------------------------------------------------
+# fit a 3-state model instead
 weibullShape = c(3, 1, 1)
 weibullScale = c(20, 1, 2)
 wcauchyMu = c(0, pi, 0)
@@ -165,6 +180,7 @@ plot(tripleStateModel)
 plotStates(tripleStateModel)
 
 ## ---- echo=FALSE, cache=TRUE---------------------------------------------
+# test different ways to find starting values
 n = 100
 nstates = 2
 startVals = matrix(nrow = n, ncol = nstates * 4)
@@ -207,6 +223,7 @@ hist(nll[nll < 1e300], xlab = "neg log like", main = "") # some are infinite
 hist(nll[nll < 1400], xlab = "neg log like", main = "")
 
 ## ---- echo=FALSE, fig.width=16, fig.height=10----------------------------
+# look at what the actual starting values were
 par(mfrow = c(2, 2))
 colors = ifelse(nll < 1400, "red", ifelse(nll > 1e300, "gray", "black"))
 plot(angleMean[,1], angleMean[,2], col = colors, xlab = "state 1", ylab = "state 2", main = "Angle mean")
@@ -220,6 +237,7 @@ plot(stepScale[,1], stepScale[,2], col = colors, xlab = "state 1", ylab = "state
 AIC(doubleStateModel, tripleStateModel)
 
 ## ------------------------------------------------------------------------
+# Expectation Maximization Binary Clustering
 require(EMbC)
 
 # here we use the speeds and turning angles we already calculated,
@@ -228,7 +246,7 @@ clustering = embc(as.matrix(Lamprey.VT[, c("V", "Theta")]))
 
 
 ## ---- echo = FALSE-------------------------------------------------------
-sctr(clustering)
+sctr(clustering) ## low speed, low angle; low speed, high angle, etc. 
 
 ## ---- echo = FALSE-------------------------------------------------------
 # view(clustering) will plot trajectory if you use move obj
@@ -236,6 +254,7 @@ plot(Lamprey.VT$Z.start, type = "l")
 points(Lamprey.VT$Z.start, pch = 16, col = clustering@A)
 
 ## ---- echo=FALSE, fig.width=14-------------------------------------------
+# simulated data with different behavioural states with different methods
 data(Multipaths)
 par(mfrow = c(1,3))
 plot(Nu.sim)
@@ -244,6 +263,51 @@ plot(Tau.sim)
 title("Tau.sim")
 plot(BCRW.sim)
 title("BCRW.sim")
+
+## ------- APPLY FIRST PASSAGE TIME CODE TO NU.SIM, TAU.SIM and BCRW.SIM 
+require(adehabitatLT)
+Nu.traj = as.ltraj(data.frame(X = Re(Nu.sim$Z),
+                      Y = Im(Nu.sim$Z)),
+                      Sys.time() + 1:length(Nu.sim$Z),
+                      id = "Nu.sim")
+
+Tau.traj = as.ltraj(data.frame(X = Re(Tau.sim$Z),
+                   Y = Im(Tau.sim$Z)),
+                   Sys.time() + 1:length(Tau.sim$Z),
+                   id = "Tau.sim")
+
+BCRW.traj = as.ltraj(data.frame(X = Re(BCRW.sim$Z),
+                   Y = Im(BCRW.sim$Z)),
+                   Sys.time() + 1:length(BCRW.sim$Z),
+                   id = "BCRW.sim")
+
+radii = c(3, 5, 8, 10, 20) # different radii 
+Nu.fpt = fpt(Nu.traj, radii) # 
+Tau.fpt = fpt(Tau.traj, radii) # 
+BCRW.fpt = fpt(BCRW.traj, radii) # 
+
+## ---- echo=FALSE, fig.width=15-------------------------------------------
+par(mfrow = c(3,length(radii)))
+plot.fpt(Nu.fpt, radii, xlab = "Time", main = "Nu: ")
+plot.fpt(Tau.fpt, radii, xlab = "Time", main = "Tau: ")
+plot.fpt(BCRW.fpt, radii, xlab = "Time", main = "BCRW: ")
+
+Nu.lav = apply(Nu.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30))
+Tau.lav = apply(Tau.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30))
+BCRW.lav = apply(BCRW.fpt[[1]], 2, function(x) lavielle(na.omit(x), Lmin = 2, Kmax = 30)) # contains fewer observations?
+
+Nu.optseg = unlist(lapply(Nu.lav, function(x) { y = chooseseg(x, output = "opt")
+title(paste("Nu, opt seg =", y))
+y}))
+Tau.optseg = unlist(lapply(Tau.lav, function(x) { y = chooseseg(x, output = "opt")
+title(paste("Tau, opt seg =", y))
+y}))
+
+## ---- echo=FALSE, fig.width=15-------------------------------------------
+# put those edges on boundaries between clusters --  behavioural states
+par(mfrow = c(2, 3))
+temp = lapply(1:3, function(x) { findpath(Lamprey.lav[[x]], Lamprey.optseg[x])
+  title(paste("Raw: ", radii[x])) })
 
 ## ---- eval=FALSE---------------------------------------------------------
 ## data(Multipaths)
