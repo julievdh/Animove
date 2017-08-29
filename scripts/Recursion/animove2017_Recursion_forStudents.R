@@ -87,14 +87,14 @@ names(habibavisits)
 
 # examine output object
 str(habibavisits)
-habibavisits$revisits
+habibavisits$revisits # for each location, how many revisitations? 
 
-#plot revisits
+#plot revisits - many locations have few, but a few locations are often revisited 
 hist(habibavisits$revisits, breaks = 10, col = "darkgrey", border = NA, main = "", xlab = "Revisits (radius 500m)")
 
 #plot revisits on trajectory
 plot(habibavisits, habibaAEQD, alpha = 1, legendPos = c(-3000, 4000))
-# draw circle as a reference for scale
+# draw circle as a reference for scale - THIS IS A GREAT IDEA
 drawCircle(max(habibaAEQD@coords[,1]) - Radius, min(habibaAEQD@coords[,2]) + Radius, radius = Radius)
 ######################################
 
@@ -114,7 +114,7 @@ print(map.habiba +
 ###############################################################
 # there is more than just the revisits in the recursion object:
 # accessing the data frame for the recursion statistics
-habibavisits$revisitStats[1:15,]
+habibavisits$revisitStats[1:15,] # id, coordinates, number of visits per each coordinate
 
 #################################
 # examine first passage time
@@ -129,7 +129,7 @@ hist(as.numeric(habibavisits$firstPassageTime), breaks = 20, col = "darkgrey", b
 
 
 #plot locations with first passage larger or smaller 6 hrs on map
-cutOff = 6
+cutOff = 6 # blue is LONGER than 6 hours - where animals hang out for longer periods
 print(map.habiba + 
         geom_path(data = habiba.map.df, aes(x = coords.x1, y = coords.x2),color = "white", size = 0.3) + 
         geom_point(data = habiba.map.df, aes(x = coords.x1, y = coords.x2), 
@@ -153,6 +153,7 @@ head(habibavisits$residenceTime)
 
 
 hist(as.numeric(habibavisits$residenceTime), breaks = 20, col = "darkgrey", border = NA, main = "", xlab= "Utilization time (hrs)")
+# 10 hours is median residence for any location
 # there seems to be a bimodal distribution too, separated at about 20 hrs total visit time
 cutOff = 20
 print(map.habiba + 
@@ -160,12 +161,13 @@ print(map.habiba +
         geom_point(data = habiba.map.df, aes(x = coords.x1, y = coords.x2), 
                    color = alpha(ifelse(habibavisits$residenceTime > cutOff, "blue", "grey"), 0.5)))
 # these areas are very different than the areas with longer first passage, maybe related to resources?
+# shows three very distinct locations
 
 #look at NDVI at these areas to explore relation to resources
 # note: the NDVI raster is in UTM coordinates
-ndvi = raster(paste0(Path,"MOD13Q1.A2014033.250m_16_days_NDVI.tif")) / 10000
+ndvi = raster(paste0(Path,"/scripts/Recursion/MOD13Q1.A2014033.250m_16_days_NDVI.tif")) / 10000
 habiba.ndvi = data.frame(habiba[,c("utm.easting", "utm.northing", "timestamp")] )[,1:3] # ignore extra cols move package adds
-habiba.ndvi$ndvi = extract(ndvi, habiba.ndvi[,c("utm.easting", "utm.northing")])
+habiba.ndvi$ndvi = extract(ndvi, habiba.ndvi[,c("utm.easting", "utm.northing")]) # extract the NDVI value for each location
 
 
 # plot NDVI with data
@@ -176,14 +178,14 @@ points(habiba.ndvi$utm.easting, habiba.ndvi$utm.northing,
 drawCircle(max(habiba.ndvi$utm.easting) - Radius, min(habiba.ndvi$utm.northing) + Radius, radius = Radius)
 
 # check if there is any difference in NDVI between residence time categories
-cutOff = 20
+cutOff = 20 # 20 hour residence time
 graphics::boxplot(habiba.ndvi$ndvi ~ habibavisits$residenceTime > cutOff, 
 				  outline = FALSE, col = "grey", notch = FALSE, 
 				  xlab = paste0("Utilization > ", cutOff," hrs"), ylab = "NDVI")
-
-
+# BE FOREWARNED: not good for statistical because of revisitation and sample size etc
 
 # check if there is any difference in NDVI between times of day
+# IF foraging, THEN NDVI should be higher during day
 graphics::boxplot(habiba.ndvi$ndvi ~ hour(habiba$timestamp), 
                   outline = FALSE, col = "grey", xlab = "Time of day (hrs)", ylab = "NDVI")
 
@@ -199,13 +201,13 @@ print(map.habiba +
         geom_path(data = habiba.map.df, aes(x = coords.x1, y = coords.x2), color = "white", size = 0.3) + 
         geom_point(data = habiba.map.df[returnsAfterOneWeek, ], aes(x = coords.x1, y = coords.x2), 
                    color = alpha("blue", 0.2)))
-
+# "and this is not very interesting, but anyway..." - T. Mueller
 
 # look at revisitation times at shorter time intervals
 hist(as.numeric(habibavisits$revisitStats$timeSinceLastVisit / 24), freq = TRUE, 
    xlab = "Time since last visit (days)" , xlim = c(0, 3), ylim = c(0, 400), 
    breaks = 70, col = "darkgrey", border = NA, main = "")
-# there seems to be a hint for periodivity - possible suggests periodogram analyses
+# there seems to be a hint for periodicity - possible suggests periodogram analyses
 
 
 # what if we pick a smaller radius?
@@ -217,7 +219,6 @@ hist(habibavisits$revisits, breaks = 10, col = "darkgrey", border = NA, main = "
 
 plot(habibavisits, habibaAEQD, alpha = 1, legendPos = c(-3000, 4000))
 drawCircle(max(habibaAEQD@coords[,1]) - Radius, min(habibaAEQD@coords[,2]) + Radius, radius = Radius)
-
 
 cutOff = 7
 graphics::boxplot(habiba.ndvi$ndvi ~ habibavisits$revisits > cutOff, 
@@ -232,7 +233,7 @@ graphics::boxplot(habiba.ndvi$ndvi ~ habibavisits$revisits > cutOff,
 #---------------------------------------------------------------
 
 # leo
-leo = move(x = paste0(Path, "Leo-65545.csv"))
+leo = move(x = paste0(Path, "/Leo-65545.csv"))
 
 
 # plot leo on a map
@@ -267,7 +268,7 @@ leovisit50 = getRecursions(leo.df, 50) # uses 50m radius
 
 #revisits
 hist(leovisit50$revisits, breaks = 100, main = "", xlab = "Revisits (radius 50m)")
-hist(leovisit50$revisits, breaks = 100, xlim = c(0,100), main = "", xlab = "Revisits (radius 50m)")
+hist(leovisit50$revisits, breaks = 100, xlim = c(0,100), main = "", xlab = "Revisits (radius 50m)") # zoom x axis
 
 
 # start with 1 to see all data, then change to 10 to see commonly visited places, 
@@ -292,7 +293,7 @@ print(map.leoGeo +
 #---------------------------------------------------------------
 # Analyze revisits for revisitThreshold = 75
 #---------------------------------------------------------------
-
+# at each five sites, how many times were you coming back in which years?
 
 # assign location to each of the 5 clusters
 revisitThreshold = 75
@@ -329,21 +330,4 @@ for(i in 1:5)
        main = "", xlab = "Year", freq = T, ylim = c(0,200))
 }
 dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
