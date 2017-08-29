@@ -1,7 +1,8 @@
 # load Leo
-Leo <- Leo <- move("Leo-65545.csv.gz")
+library(move)
+Leo <- Leo <- move("./data/Leo-65545.csv.gz")
 plot(Leo, type="l")
-
+# table with hits per month per year
 tapply(timestamps(Leo), list(year(timestamps(Leo)), month(timestamps(Leo))), length)
 ###########
 library(move)
@@ -9,8 +10,8 @@ library(lubridate)
 library(circular)
 library(fields)
 
-Leo <- Leo[year(Leo$timestamp)<2012,]
-# initialise a new variable
+Leo <- Leo[year(Leo$timestamp)<2012,] # select only data before 2012
+# initialise a new variable - declare some categories
 Leo$cat <- NA
 # define the months of North migration
 Leo$cat[month(Leo$timestamp) %in% c(4,5)] <- "North migration"
@@ -21,16 +22,18 @@ Leo$cat[month(Leo$timestamp) %in% c(9,10)] <- "South migration"
 # define Wintering
 Leo$cat[month(Leo$timestamp) %in% c(11,12,1,2,3)] <- "Wintering"
 # assign NA to segments between two seasons
-Leo$cat[which(diff(as.numeric(as.factor(Leo$cat)))!=0)] <- NA
+Leo$cat[which(diff(as.numeric(as.factor(Leo$cat)))!=0)] <- NA # way to find changes in categories
+# category is character string. As factor turns characters -> factors, which are stored as integers. 
+# find transitions between factors with this line
 
 # store the information in a new data frame
 azimuth <- data.frame(D=angle(Leo),
                       V=speed(Leo), 
-                      Season=Leo$cat[-1])
+                      Season=Leo$cat[-1]) # season is an attribute of the point
 # remove stationary segments
-azimuth <- azimuth[azimuth$V>=2,]
+azimuth <- azimuth[azimuth$V>=2,] # only interested in when Leo is moving (and we know he moves > 2 m/s)
 # remove missing values
-azimuth <- azimuth[complete.cases(azimuth),]
+azimuth <- azimuth[complete.cases(azimuth),] # remove any NAs -- return only rows entirely filled with data
 # define a vector that is used to set the order of plotting
 seasons <- c("South migration", "Wintering", "North migration", "Breeding")
 # change margins of plot
@@ -68,6 +71,7 @@ legend("bottomleft", lty=c(1,2,3,4), seasons, bty="n", cex=0.85)
 par(mar=c(5, 4, 4, 2) + 0.1)
 
 ###########
+# figure of speed vs direction - high speeds in NNW and SSE, lower speeds in other quadrants
 library(circular)
 azimuth$cols <- "grey3"
 azimuth$cols[azimuth$Season=="North migration"] <- "forestgreen"
@@ -125,6 +129,7 @@ for(i in c("Breeding", "South migration", "Wintering", "North migration"))
 }
 par(mfrow=c(1,1))
 ###########
+# turning angles
 turn <- data.frame(angle=turnAngleGc(Leo))
 
 v <- speed(Leo)
@@ -151,6 +156,7 @@ windrose(as.circular(angle360,
          plot.mids=T, cir.ind = 0.2, mids.size=1,
          increment=5, bins=72, fill.col=grey(seq(1,0, length.out=6)),
          main="Turning angle and speed", tcl.text=-0.07)
+# most high speeds occur at around zero turning angle
 ###########
 library(scales)
 par(mfrow=c(2,2))
@@ -167,11 +173,11 @@ par(mfrow=c(1,1))
 #### Movement process and effects on path metrics
 library(adehabitatLT)
 library(move)
-sets <- sort(rep((0.8 + log10(c(seq(1,100, length.out=10)))/10)[1:9],500))
-rCRW <- lapply(lapply(sets, simm.crw, date=1:1000, h=1), as, "Move")
-rNSD <- unlist(lapply(lapply(lapply(rCRW, coordinates), spDistsN1, pt=c(0,0)), "^", 2))
+sets <- sort(rep((0.8 + log10(c(seq(1,100, length.out=10)))/10)[1:9],500)) # make a CRW with different correlation levels 
+rCRW <- lapply(lapply(sets, simm.crw, date=1:1000, h=1), as, "Move") 
+rNSD <- unlist(lapply(lapply(lapply(rCRW, coordinates), spDistsN1, pt=c(0,0)), "^", 2))  # calculate net squared displacement
 
-mNSD <- tapply(rNSD, list(sort(rep(sets,1000)) , rep(1:1000, length(sets))) , mean)
+mNSD <- tapply(rNSD, list(sort(rep(sets,1000)) , rep(1:1000, length(sets))) , mean) # can compare with brownian motion or the likely process 
 par(mar=c(5, 4, 4, 4) + 0.1)
 plot(0,0, type="n", xlim=c(0,1300), ylim=c(0, max(mNSD)),
      bty="n", xlab="Step", ylab="Net square distance", xaxt="n")
@@ -203,15 +209,15 @@ plot(leo$timestamp,
                 coordinates(Leo)[1,])^2), type="l",
      xlab="Time", ylab="Net square distance", main="Winter 2008/2009")
 layout(matrix(c(1), ncol=1, byrow=T))
-
+# our wintering is not well-defined: there are movement edges compared to when we assigned wintering period
 ###########
-Leo <- spTransform(Leo, center=T)
+Leo <- spTransform(Leo, center=T) # transform to euclidean
 
 ###########
 # First passage time
 ###########
 library(adehabitatLT)
-fptLeo <- fpt(as(Leo, "ltraj"), r=10^seq(3, 6, length.out=150), units="days")
+fptLeo <- fpt(as(Leo, "ltraj"), r=10^seq(3, 6, length.out=150), units="days") # This takes a few min
 meanFPT <- colMeans(fptLeo[[1]], na.rm=T)
 radiiFPT <- attributes(fptLeo)$radii
 plot(meanFPT~radiiFPT,
@@ -224,6 +230,10 @@ plot(as.numeric(vars)~radiiFPT,
      log="x", ylab="Variance of log first passage time", 
      xlab="Radius in meters")
 ###########
+# if you take all changes in variance - different processes at different change in radii 
+# Leo is working at different scales with different spatial extents. 
+# Directional movement at scales of 1-2.5 km
+# 2.7 - 20 km, searching randomly
 plot(log10(meanFPT)~log10(radiiFPT),
      type="l", lwd=2, xlab="Log radii in meters",
      ylab="Log first passage time in days")
@@ -298,6 +308,7 @@ par(mfrow=c(1,1))
 ###########
 # dBBMM
 ###########
+# where was your animal when you didn't observe it? 
 library(move)
 library(lubridate)
 Leroy <- move(system.file("extdata","leroy.csv.gz",package="move"))
@@ -306,9 +317,10 @@ LeroyVar <- brownian.motion.variance.dyn(Leroy, location.error=rep(25, n.locs(Le
                                          window.size=71, margin=21)
 VarDat <- data.frame(var=getMotionVariance(LeroyVar), hour=hour(LeroyVar$study.local.timestamp))
 boxplot(VarDat$var~VarDat$hour, xlab="Hour of the day", ylab="mean Brownian variance", pch="*")
+# estimates variance over time, boxplot per hour. More variance at night vs day - in day, Leroy is in his den
 
 ###########
-# simulated tracks
+# simulated tracks - to compare brownian motion with observed 
 ###########
 steps <- 1000
 duration <- 3600
@@ -321,8 +333,8 @@ simmBrown<-   move(x=cumsum(rnorm(steps, 0, 1)),
 steps <- 1000
 duration <- 3600
 start.time <- Sys.time()
-simmBias<-   move(x=cumsum(rnorm(steps, 0.1, 1)),
-                  y=cumsum(rnorm(steps, 0.1, 1)),
+simmBias<-   move(x=cumsum(rnorm(steps, 0.1, 1)), # this one has a biased direction
+                  y=cumsum(rnorm(steps, 0.1, 1)), 
                   time=seq(start.time, start.time+duration, length.out=steps),
                   id="SimmBiased")
 sims <- moveStack(list(simmBrown, simmBias))
@@ -340,13 +352,16 @@ plot(simm, type="l", xlab="Longitude", ylab="Latitude")
 ###########
 hist(speed(simm), col="grey", xlim=c(0,1.1), main=NA, xlab="Speed")
 hist(speed(sims[[1]]), breaks="FD", ylim=c(0,250), add=T, col=alpha("white", 0.5))
+# speed distribution can be useful in looking at different processes: not like the speed distribution we saw in real data
 ###########
 library("adehabitatLT")
 set.seed(5323)
-crw <- simm.crw(1:100, r=.99)
+crw <- simm.crw(1:100, r=.99) # 100 steps, v correlated
 
 plot(crw)
 ###########
+# create expectations and compare to observed data - brownian bridge using same segments. 
+# this keeps start and end points but breaks up the autocorrelation structure in the trajectory 
 rand.seg <- function(x, rep)
 {
   s <- NULL
@@ -384,7 +399,7 @@ legend("topleft", pch=c(NA, NA, 17, 19), lty=c(1,2,NA,NA),
        c("Empirical track", "Randomised track", "Start", "End"), 
        bty="n", cex=0.75)
 
-###########
+########### STOPPED HERE 
 
 cor(speed(Leroy)[-length(speed(Leroy))], speed(Leroy)[-1])
 
