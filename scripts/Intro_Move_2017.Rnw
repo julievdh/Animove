@@ -1,0 +1,788 @@
+\documentclass[dvipsnames]{beamer}
+% xcolor=svgnames % even more colors
+
+\usepackage[orientation=landscape,size=custom,width=18,height=10,scale=0.45]{beamerposter} %für breite screens
+% \usepackage[orientation=landscape,size=custom,width=16,height=9,scale=0.45,debug]{beamerposter} %für 16:9 ratio
+
+\mode<presentation>{
+
+ \usetheme{Warsaw}
+% \usetheme{Frankfurt}
+}
+% \usecolortheme{lily}
+\usecolortheme{beaver}
+
+\input{tex-stuff/preamble_new}
+
+
+\pdfinfo
+{
+  /Title       (AniMove 2017: www.animove.org)
+  /Creator     (K. Safi & A. Scharf)
+  /Author      (K. Safi & A. Scharf)
+}
+
+
+
+% inhalt
+\title[AniMove 2017]{\textcolor{gray}{August 2017} \\Movement data in R}
+\subtitle{Getting data in and out of R}
+\author[www.animove.org]{www.animove.org}
+\institute[AniMove]{MPI for Ornithology}
+\date{2016}
+
+%hover command for overlays
+\newcommand<>{\hover}[1]{\uncover#2{%
+  \begin{tikzpicture}[remember picture,overlay]%
+    \draw[fill,opacity=0.4] (current page.south west) rectangle (current page.north east);
+    \node at (current page.center) {#1};
+  \end{tikzpicture}}
+}
+% end
+
+
+
+
+\begin{document}
+<<setup, include=FALSE>>=
+require(knitr)
+opts_chunk$set(fig.path='figure/beamer-',fig.align='center',fig.show='hold',size='footnotesize')
+opts_knit$set(root.dir="/home/anne/ownCloud/Animove17_SafiLab/LectureAnne")
+@
+\tikzstyle{every picture}+=[remember picture]
+
+
+{\setbeamercolor{background canvas}{bg=black}
+\begin{frame}[plain]
+ \definecolor{african_dawn}{RGB}{174,162,118}
+    \begin{center}
+    \leftskip-3em
+    \vskip-2em
+  \begin{overpic}
+  	[width=1.15\textwidth,clip=true,trim=0 0 0 00]{graphics/BG_neutral.png}
+% 		\put(5,55){\Huge{\textcolor{black}{\textbf{Coffee Break}}}}
+% 		\put(5,45){\huge{\textcolor{blue}{\textbf{afterwards: introduction to an R editor}}}}
+		\end{overpic}
+    \end{center}
+
+\end{frame}
+}
+
+
+\begin{frame}
+ 
+\thispagestyle{empty}
+
+    \vspace{5em}
+    \begin{tabular*}{\paperwidth}[b]{p{34em}rr}
+         \vskip-2em
+          \leftskip-2.88em     \includegraphics[height=.7cm]{graphics/logo/unilogo.jpg} \hspace{0.2cm} \includegraphics[height=.7cm]{graphics/logo/dlr.jpg} \hspace{0.2cm} \includegraphics[height=.7cm]{graphics/logo/mpi_logo2.jpg} \hspace{0.2cm} \includegraphics[height=.7cm]{graphics/logo/enb} \hspace{0.2cm} \includegraphics[height=.7cm]{graphics/logo/Smithsonian_large.jpg} \hspace{0.2cm} \includegraphics[height=.7cm]{graphics/logo/ZSL_black.jpg} \hspace{0.2cm} \includegraphics[height=.7cm,clip=true,trim=0 0 0 0]{graphics/logo/gce.jpg}&  &           
+    \end{tabular*}
+
+          \leftskip-12.5em%
+          \vskip-.3em
+          \includegraphics[width=1.38\textwidth,clip=true,trim=0 150 0 0]{graphics/gradient_giraffe_RS}
+    
+%Bereich unter dem Bild:
+            \leftskip-6.5em%
+            \vskip1.5em%
+%                	\hspace{0.5cm}
+             \begin{tabular*}{\paperwidth}[b]{p{18em}p{20em}} 
+%Titel der Präsentation:
+		  &  \\
+% 		  & \\
+                 &  \parbox{25em}{\begin{large}\inserttitle\end{large}}\\%
+                  \\
+% 		  &  \\
+% % 		  & & \\
+               	\hspace{1.5cm}
+		 \textcolor[rgb]{0,0,0}{  \parbox[t]{20.5em}{\tiny \insertauthor\ $\vert$  \insertinstitute}}%
+%Untertitel der Präsentation:
+               &  {\parbox{25em}{\insertsubtitle}}\\%
+             \end{tabular*}
+  \vfill
+\end{frame}
+
+%%%%%
+\addtobeamertemplate{frametitle}{}{%
+\begin{textblock*}{100mm}(.92\textwidth,-1.1cm)
+\includegraphics[height=1cm,width=2cm]{graphics/AniMoveLogo.png}
+\end{textblock*}}
+
+% \addtobeamertemplate{frametitle}{}{%
+% \begin{textblock*}{\paperwidth}(\textwidth)
+% \includegraphics[\paperwidth]{graphics/animove-header_verythin.png}
+% \end{textblock*}}
+
+% 
+% \addtobeamertemplate{frametitle}{
+% \begin{textblock*}{\paperwidth}(-30pt,0pt)
+% \includegraphics[width=1.1\paperwidth,height=1.3cm]{graphics/animove-header_verythin.png}
+% \end{textblock*}
+
+
+% \begin{beamercolorbox}[wd=\paperwidth,ht=0.63\beamer@headheight]{Title bar}
+ 
+% \addtobeamertemplate{frametitle}{}{%
+% \begin{tikzpicture}[remember picture,overlay]
+% \node[anchor=north east,yshift=2pt] at (current page.north east) {includegraphics[width=\paperwidth]{graphics/animove-header_verythin.png}};
+% \end{tikzpicture}}
+%  
+ 
+%%%%%%%%%%%%%%%% begin slides here %%%%%%%%%%%%%%%%
+
+
+\begin{frame}[fragile]{Packages necessary for movement}
+\begin{center}
+\includegraphics[height=8cm]{graphics/Packages_R.jpg}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]{The Move package}
+Movement is defined as location(s) through time. Movement is a spatio-temporal object. Correct object definition will allow us to manipulate the data in an appropriate way.\\\bigskip
+The \texttt{Move} package extends the spatial object \texttt{SpatialPointsDataFrame} by making time a mandatory component (movement = location + time)\\\bigskip
+
+In the Move package there are 3 object classes for storing movement data:
+\begin{itemize}
+\item \texttt{move}: A single trajectory of a single animal\\
+\item \texttt{moveStack}: A set of trajectories of multiple individuals\\
+\item \texttt{moveBurst}: A single segmented trajectory
+\end{itemize}
+\end{frame}
+
+
+% \begin{frame}[fragile]{The Move package}
+%  Load package
+%  <<move1, message=FALSE>>=
+% library("move")
+% @
+% Make sure that you have the most recent version: 3.0.0
+% 
+% 
+%  <<move2, message=FALSE, eval=F>>=
+% sessionInfo()
+% @
+% \end{frame}
+
+\begin{frame}[fragile]{Reading in data}
+There are 3 main ways to read in movement data with the \texttt{move} package:
+\begin{enumerate}
+\item From a csv file downloaded from Movebank
+\item Downloading the data from Movebank directly through R
+\item From any data set
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Movebank}
+\begin{center}
+\includegraphics[height=1.5cm]{graphics/movebank_logo.png}\\
+\end{center}
+Online database to store movement data (www.movebank.org).\\
+Advantages:
+\begin{itemize} 
+\item Data are standardized
+\item Easy data visualization
+\item Access to the data directly through R with the \texttt{move} package
+\item Easy environmental annotation with the EnvData tool
+\item User defined privacy settings: e.g. only visible for data owner, only visible for selected users, open of everybody
+\item Data sharing
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Reading in data from Movebank (offline)}
+\textbf{1.} Reading in a .csv file downloaded from a Movebank study using the function \texttt{move}.
+
+<<readBats, message=FALSE>>=
+library("move")
+setwd("/home/anne/ownCloud/Animove17_SafiLab/LectureAnne/")
+Bats <- move("./data/Parti-colored bat Safi Switzerland.csv")
+@
+The cool thing is that you can actually also read tar-compressed csv exports. This is an interesting option if you are looking at large movement data sets. 
+<<readLeo, message=FALSE>>=
+file.info("data/Leo-65545.csv")$size
+file.info("data/Leo-65545.csv.gz")$size
+
+Leo <- move("data/Leo-65545.csv.gz")
+@
+Also the .zip file that you obtained from the EnvData tool can be directly read in with the \texttt{move} function.
+\end{frame}
+
+\begin{frame}[fragile]{Reading in data from Movebank (online)}
+\textbf{2.} Directly downloading data from Movebank
+<<credMB, cache=TRUE, message=FALSE,eval=T>>=
+# store the movebank credentials
+cred <- movebankLogin(username="R-Book", password="Obstberg1")
+
+# search for studies using keywords
+searchMovebankStudies(x="Parti-colored bat", login=cred)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Intermezzo, for some}
+Some computers will elicit an error when trying to online access the data. There are two reasons:
+\begin{itemize}
+\item{You have to accept the licence agreement of the study on Movebank once.}
+\item{You have to set the \texttt{curlHandle}.}
+\end{itemize}
+<<curl.cirum, eval=FALSE>>=
+curl <- getCurlHandle()
+options(RCurlOptions = list(capath = system.file("CurlSSL", "cacert.pem", 
+                                                 package = "RCurl"),
+                            ssl.verifypeer = FALSE, ssl.verifyhost = FALSE))
+curlSetOpt(.opts = list(proxy = 'proxyserver:port'), curl = curl)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Reading in data from Movebank (online)}
+Once things are rolling, it’s pretty nice to browse the database straight from R.
+ <<online1, eval=F>>=
+# get the meta data of the study
+getMovebankStudy(study="Parti-colored bat Safi Switzerland",login=cred)
+@
+ <<online11, eval=T>>=
+# check for information of the animals
+getMovebankAnimals(study="Parti-colored bat Safi Switzerland",login=cred)[1:2,]
+@
+\end{frame}
+
+
+\begin{frame}[fragile]{Reading in data from Movebank (online)}
+Download the location data of a study and directly obtain a \texttt{move} or \texttt{moveStack} object
+ <<online2, eval=F>>=
+# get the all data
+Bats <- getMovebankData(study="Parti-colored bat Safi Switzerland",
+                        login=cred)
+# get only bat "191"
+bat191 <- getMovebankData(study="Parti-colored bat Safi Switzerland",
+                          animalName="191", login=cred)
+
+# get data for a specific time range e.g. between "2002-06-02 23:06:15" 
+# and "2002-06-11 22:18:25". Time format: 'yyyyMMddHHmmssSSS'
+bats.subset <- getMovebankData(study="Parti-colored bat Safi Switzerland",
+                               login=cred,timestamp_start="20020602230615000",
+                               timestamp_end="20020611221825000")
+@
+\end{frame}
+
+
+\begin{frame}[fragile]{Reading in data from any data set}
+\textbf{3.} Creating a move object from any data set:
+<<readAnyData, message=FALSE>>=
+# read the data and store in a data frame
+file <- read.table(system.file("extdata","leroy.csv.gz", package="move"), 
+                   header=TRUE, sep=",", dec=".")
+
+# convert a data frame into a move object
+Leroy <- move(x=file$location.long,y=file$location.lat,
+              time=as.POSIXct(file$timestamp,
+                              format="%Y-%m-%d %H:%M:%S",tz="UTC"),
+              data=file,proj=CRS("+proj=longlat"),
+              animal="Leroy", sensor="gps")
+@
+\end{frame}
+ 
+ 
+\begin{frame}[fragile]{Time settings are crucial!}
+The time settings are crucial. You have to know what your device used as time. Many GPS devices use and report local time, some report UTC! Questions you have to ask yourself:
+\begin{itemize}
+\item{Did you track over the day light saving switches?}
+\item{In which time zone your device reports time?}
+\item{Did I set the time zone?}
+\end{itemize}
+\bigskip
+Note that time zone is machine specific, at least the semantics. Once set, we can exchange the data between different computers. \\
+If you omit setting the time zone, R will use your local (computer!) time zone.
+<<timez>>=
+Sys.time()
+@
+The \texttt{strptime} function is enormously helpful. Look up it's help for getting information about the format options.
+\end{frame} 
+ 
+\begin{frame}[fragile]{Next important aspect: the projection}
+As the earth is a sphere, we can't use a planar (Cartesian) coordinate system, because distance, area and angle can \textbf{not} be correctly mapped in a 2D coordinate system. Try to flatten the skin of a peeled orange on the table without crinkles and cuts...\\
+\bigskip
+There is no solution to the problem of flattening the world without distortion. Consequence is: all spatial data is somehow distorted, or is not in a Cartesian coordinate system. The distortion, or as geo-people refer to it, the projection needs to be declared. But for that we need to work with proper spatial objects. Benefit: we can reproject.
+\end{frame} 
+ 
+\begin{frame}[fragile]{Next important aspect: the projection}
+When reading data from a table, we have to \textbf{declare} the \textbf{correct} projection. This should be known, and belongs to the essential metadata information that needs to be provided.
+<<projL>>=
+projection(Leroy)
+@
+Once a \texttt{move} object has the correct projection assigned, this object can be reprojected into other projections: 
+<<reprojL>>=
+LeroyProj <- spTransform(Leroy, CRSobj="+proj=utm +zone=18 +north 
+                         +ellps=WGS84 +datum=WGS84")
+projection(LeroyProj)
+@
+Helpful webpage to find the corresponding proj4 syntax of a projection: http://spatialreference.org/
+\end{frame}
+
+ 
+\begin{frame}[fragile]{Murphy's law: what can wrong, will go wrong}
+As usual, if there are many things that can go wrong something will go wrong. Let's look at a very nice example: the buffalo study.
+<<readBuff>>=
+buffalo <- move("./data/Kruger African Buffalo, GPS tracking, South Africa.csv.gz")
+@
+\end{frame}
+
+\begin{frame}[fragile]{Murphy's law: what can wrong, will go wrong}
+We have to clean the data manually. Movebank has cleaning tools and probably it is much easier to do so there.
+But we can also do it in R, of course.
+
+<<dupts>>=
+# create a data frame
+bf <- 'data/Kruger African Buffalo, GPS tracking, South Africa.csv.gz'
+buffalo.df <- read.csv(bf, as.is=TRUE)
+
+#get a quick overview
+head(buffalo.df, n=2)
+@
+
+\end{frame}
+\begin{frame}[fragile]{Murphy's law: what can wrong, will go wrong}
+<<clean2>>=
+# first make sure the date/time is correct
+buffalo.df$timestamp <- as.POSIXct(buffalo.df$timestamp,
+                                   format="%F %T ", tz="UTC")
+
+# also ensure that timestamps and individuals are ordered
+buffalo.df <- buffalo.df[order(buffalo.df$individual.local.identifier,
+                               buffalo.df$timestamp),]
+@
+\end{frame}
+
+\begin{frame}[fragile]{Find and remove duplicated timestamps}
+Get the duplicated timestamps with the function \texttt{getDuplicatedTimestamps}. It indicates the row numbers of the data frame where there are duplicated timestamps (per individual and sensor).
+<<clean3a>>=
+# get the duplicated timestamps
+dup <- getDuplicatedTimestamps(buffalo.df)
+dup[1]
+
+# get an overview of the amount of duplicated timestamps
+table(unlist(lapply(dup,function(x)length(x)))) 
+
+@
+\end{frame}
+
+\begin{frame}[fragile]{Find and remove duplicated timestamps}
+Lets choose the location that minimized the total distance covered. \\
+The complete code is in the R-script
+<<clean3dist, eval=F>>=
+buffalo.clean <- buffalo.df
+# A while loop will ensure that the loop continues untill each duplicate is removed
+while(length(dup <- getDuplicatedTimestamps(buffalo.clean))>0){
+allrowsTOremove <- lapply(1:length(dup), function(x){
+  rown <- dup[[x]]
+# => complete code is in the R-script!
+@
+
+<<clean3distCompl, eval=F, echo=F>>=
+buffalo.clean <- buffalo.df
+# A while loop will ensure that the loop continues untill each duplicate is removed
+while(length(dup <- getDuplicatedTimestamps(buffalo.clean))>0){
+allrowsTOremove <- lapply(1:length(dup), function(x){
+  rown <- dup[[x]]
+   # checking if the positions are exaclty the same for all timestamps
+  if(any(duplicated(buffalo.clean[rown,c("timestamp", "location.long", "location.lat", "individual.local.identifier")]))){
+    dup.coor <- duplicated(buffalo.clean[rown,c("timestamp", "location.long", "location.lat", "individual.local.identifier")])
+    rowsTOremove <- rown[dup.coor] # remove duplicates
+  }else{
+      # subset for the individual, as distances should be measured only within the individual
+      # create a row number ID to find the duplicated time stamps in the subset per individual
+      buffalo.clean$rowNumber <- 1:nrow(buffalo.clean)
+      ind <- unlist(strsplit(names(dup[x]),split="|", fixed=T))[1]
+      subset <- buffalo.clean[buffalo.clean$individual.local.identifier==ind,]
+
+      # if the duplicated positions are in the middle of the table
+      if(subset$rowNumber[1]<rown[1] & subset$rowNumber[nrow(subset)]>max(rown)){
+        # calculate total distance throught the first alternate location
+        dist1 <- sum(distHaversine(subset[subset$rowNumber%in%c((rown[1]-1),(max(rown)+1)),c("location.long", "location.lat")],
+                                   subset[subset$rowNumber==rown[1],c("location.long", "location.lat")]))
+         # calculate total distance throught the second alternate location
+        dist2 <- sum(distHaversine(subset[subset$rowNumber%in%c((rown[1]-1),(max(rown)+1)),c("location.long", "location.lat")],
+                                    subset[subset$rowNumber==rown[2],c("location.long", "location.lat")]))
+          # omit the aternate location that produces the longer route
+        if(dist1<dist2){rowsTOremove <- rown[2]}else{rowsTOremove <- rown[1]}
+      }
+
+      # incase the duplicated timestamps are the first positions
+      if(subset$rowNumber[1]==rown[1]){
+        dist1 <- sum(distHaversine(subset[subset$rowNumber==(max(rown)+1),c("location.long", "location.lat")],
+                                   subset[subset$rowNumber==rown[1],c("location.long", "location.lat")]))
+        dist2 <- sum(distHaversine(subset[subset$rowNumber==(max(rown)+1),c("location.long", "location.lat")],
+                                   subset[subset$rowNumber==rown[2],c("location.long", "location.lat")]))
+        if(dist1<dist2){rowsTOremove <- rown[2]}else{rowsTOremove <- rown[1]}
+      }
+
+       # incase the duplicated timestamps are the last positions
+      if(subset$rowNumber[nrow(subset)]==max(rown)){
+        dist1 <- sum(distHaversine(subset[subset$rowNumber==(rown[1]-1),c("location.long", "location.lat")],
+                                    subset[subset$rowNumber==rown[1],c("location.long", "location.lat")]))
+        dist2 <- sum(distHaversine(subset[subset$rowNumber==(rown[1]-1),c("location.long", "location.lat")],
+                                   subset[subset$rowNumber==rown[2],c("location.long", "location.lat")]))
+       if(dist1<dist2){rowsTOremove <- rown[2]}else{rowsTOremove <- rown[1]}
+      }
+    }
+return(rowsTOremove)
+})
+buffalo.clean <- buffalo.clean[-unique(sort(unlist(allrowsTOremove))),]
+buffalo.clean$rowNumber <- NULL
+}
+@
+
+<<saveBuffaloclean, eval=F,echo=F>>=
+save(file=paste0(getwd(),"/data/buffalo.cleaned.RData"),buffalo.clean)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Done tidying}
+<<loadBuffaloclean, eval=T,echo=F>>=
+load(paste0(getwd(),"/data/buffalo.cleaned.RData"))
+@
+<<clean3c>>=
+# define the data.frame as a move object after cleaning
+buffalo <- move(x=buffalo.clean$location.long,
+                y=buffalo.clean$location.lat,
+                time=buffalo.clean$timestamp,
+                data=buffalo.clean,
+                proj=CRS("+proj=longlat +datum=WGS84"),
+                animal=buffalo.clean$individual.local.identifier,
+                sensor=buffalo.clean$sensor.type)
+@
+\end{frame}
+
+\begin{frame}[fragile]{The move object structure}
+Summary overview
+<<moveObject1, message=FALSE, eval=T>>=
+Leroy
+@
+\end{frame}
+
+\begin{frame}[fragile]{The move object structure}
+Information contained in a move object:
+<<moveObject2, message=FALSE, eval=T>>=
+str(Leroy)
+@
+\end{frame}
+
+\begin{frame}[fragile]{The move object structure}
+Some of the slots:
+\begin{itemize}
+\item @idData: contains the information associated to the animal
+\item @data: contains additional data associated to the coordinates
+\item @...UnUsedRecords: contains the information associated to the unused records
+\item @trackId (only in \texttt{moveStack}): vector that indicates, which data, coordinates and timestamps belong to each individual
+\item @burstId (only in \texttt{moveBust}): Id of the behavioral categorization assigned to each segment.
+\end{itemize}
+\end{frame}
+ 
+\begin{frame}[fragile]{Extracting information}
+Some functions to access the information contained in the move object
+<<accessInfo, message=FALSE, eval=T>>=
+timestamps(Leroy)[1:2]
+coordinates(Leroy)[1,]
+idData(Leroy)[,c(7,8)]
+@
+\end{frame}
+ 
+\begin{frame}[fragile]{Extracting properties}
+Some of the functions to extract properties of the track.
+<<properties, message=FALSE, eval=T>>=
+n.locs(Leroy)
+timeLag(Leroy, units='mins')[1:2]
+speed(Leroy)[1:2]
+distance(Leroy)[1:2]
+@
+Check \texttt{?'Move-class', ?'MoveStack-class', ?'MoveBurst-class'} for more information about all the functions that can be used on each of these object types
+\end{frame}
+ 
+\begin{frame}[fragile]{Subsetting}
+Move objects can be subsetted like normal data frames
+<<subseting, message=FALSE, eval=F>>=
+# for example, lets make a subset with the locations
+# with the highest 5% of the speeds
+Leroy$speed <- c(speed(Leroy), NA)
+Leroy1 <- Leroy[!is.na(Leroy$speed),]
+LeroyFast <- Leroy[Leroy1$speed > quantile(Leroy1$speed, probs=0.95),]
+@
+\end{frame}
+ 
+\begin{frame}[fragile]{Basic plotting}
+\begin{columns}
+\column{0.45\textwidth}
+<<plot1, message=FALSE, eval=F>>=
+plot(Leroy)
+lines(Leroy)
+plot(Leroy, type ='l')
+@
+Most options from the normal plotting work
+<<plot2, eval=F>>=
+plot(Leroy, type ='l',
+     lwd=4, col='blue')
+points(Leroy, pch=16)
+@
+
+<<plot2H, eval=F, echo=F>>=
+jpeg("./figure/PlotLeroy.jpg",width = 20, height = 20, units = "cm",res=300)
+plot(Leroy, type ='l', lwd=4, col='blue')
+points(Leroy, pch=16)
+dev.off()
+@
+\column{0.45\textwidth}
+\includegraphics[height=7cm]{figure/PlotLeroy.jpg}
+\end{columns}
+\end{frame}
+ 
+\begin{frame}[fragile]{Plotting with map background}
+Plot with various backgrounds (Google maps, openstreetmap)
+can be created with ggplot and ggmap
+<<ggplot, message=FALSE, eval=F>>=
+library("ggmap")
+
+dataDf<-as.data.frame(Leroy)
+
+map<-get_map(bbox(extent(Leroy)*2), source='google')
+ggmap(map)+
+geom_path(data=dataDf, aes(x=coords.x1, y=coords.x2))+
+xlab('Longitude')+ylab('Latitude')
+@
+<<ggmap, message=FALSE, eval=F, echo=F>>=
+# current version on cran of "ggmap" seems to be causing some trouble,
+# try installing ggmap from github:  
+library("devtools")
+devtools::install_github("dkahle/ggmap")
+@
+
+<<ggplotsave, echo=FALSE, eval=F>>=
+ggsave("./figure/GooglePlot.jpg")
+@
+\end{frame}
+
+\begin{frame}[fragile]{Plotting with map background}
+\begin{center}
+\includegraphics[height=8cm]{figure/GooglePlot.jpg}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]{Working with multiple animals}
+<<moveStack, message=FALSE, eval=T>>=
+class(buffalo)[1]
+n.indiv(buffalo)
+levels(buffalo@trackId)
+
+# get a specific individual
+queen <- buffalo[['Queen']]
+
+# or several
+CillaGabs <- buffalo[[c("Cilla",'Gabs')]]
+@
+\end{frame}
+
+\begin{frame}[fragile]{Working with multiple animals}
+You can split the moveStack into a list of move objects
+<<movestack2, message=FALSE, eval=F>>=
+buffalo.split <- split(buffalo) 
+@
+
+Or stack a list of move objects.\\
+If you do not specify the time zone, the moveStack will be in the local computer time zone!
+<<movestack3, message=FALSE, eval=F>>=
+buffalo.stk <- moveStack(buffalo.split, forceTz="UTC")
+
+buffalo.stk2 <- moveStack(list(CillaGabs,queen),forceTz="UTC")
+@
+\end{frame}
+
+\begin{frame}[fragile]{Working with multiple animals}
+<<movestack4, message=FALSE, eval=F>>=
+plot(buffalo, type="l")
+@
+
+<<movestackplot, echo=FALSE, eval=F>>=
+jpeg("./figure/buffaloPlot.jpg", width = 20, height = 20, units = "cm",res=300)
+plot(buffalo, type="l")
+dev.off()
+@
+\begin{center}
+\includegraphics[height=8cm]{figure/buffaloPlot.jpg}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]{Segmentation}
+Move can work with segmented tracks.\\
+The classification is a property of the segment, i.e. the period between observations
+
+<<burst, message=FALSE, eval=T>>=
+library("maptools")
+LeroyTs <- timestamps(Leroy)
+Leroy$sunrise<-sunriset(Leroy,LeroyTs,POSIXct.out=T, direction='sunrise')$time
+Leroy$sunset<-sunriset(Leroy,LeroyTs,POSIXct.out=T, direction='sunset')$time
+
+Leroy$DayTime <- "Night"
+Leroy$DayTime[LeroyTs<Leroy$sunset & LeroyTs>Leroy$sunrise] <- "Day"
+
+table(Leroy$DayTime)
+@
+\end{frame}
+
+
+\begin{frame}[fragile]{Segmentation}
+<<plotburst, message=FALSE, eval=F>>=
+LeroyBurst<-burst(Leroy,f=Leroy$DayTime[-n.locs(Leroy)])
+
+plot(LeroyBurst,type="o", lwd=2, pch=20, cex=.7)
+@
+
+<<plotburstSave, echo=FALSE, eval=F>>=
+jpeg("./figure/LeroyBurstPlot.jpg", width = 20, height = 20, units = "cm",res=300)
+plot(LeroyBurst,type="o", lwd=2, pch=20, cex=.7)
+dev.off()
+@
+\begin{center}
+\includegraphics[height=7cm]{figure/LeroyBurstPlot.jpg}
+\end{center}
+\end{frame}
+
+
+\begin{frame}[fragile]{Outputting data}
+Many formats possible. Preferred is Rdata file.
+
+<<removefiles, echo=FALSE>>=
+# remove file when exists to prevent errors
+for(i in paste0('buffalo.',c('shp','shx','prj','dbf')))
+  if(file.exists(i))
+		file.remove(i)
+@
+
+<<export, eval=FALSE>>=
+#save the move object for later
+save(buffalo, file="buffalo_cleaned.Rdata")
+
+# save as a text file
+buffaloDF <- as.data.frame(buffalo)
+write.table(buffaloDF, file="buffalo_cleaned.csv", sep=",", row.names = FALSE)
+
+# save as a shape file
+writeOGR(buffalo, "./", layer="buffalo", driver="ESRI Shapefile")
+@
+\end{frame}
+
+\begin{frame}[fragile]{Outputting data}
+If you export a \texttt{moveStack} to a kml or kmz file, you might want to consider splitting the stack and exporting the data individual by individual for more display options.
+
+<<alternativeCode, eval=FALSE>>=
+library("plotKML")
+# open a file to write the content
+kml_open('buf.kml')
+# write the movement data individual-wise
+for(i in levels(trackId(buffalo)))
+  kml_layer(as(buffalo[[i]],'SpatialLines'))
+# close the file
+kml_close('buf.kml')
+@
+\end{frame}
+
+\begin{frame}[fragile]{Outputting data}
+
+Or using the \texttt{writeOGR} function you can loop through the individuals and create lines and points per individual and read all of that in Google Earth afterwards.
+
+<<exportKML, eval=FALSE>>=
+for(i in 1:nrow(buffalo@idData))
+{
+  writeOGR(as(buffalo[[i]], "SpatialPointsDataFrame"),
+           paste(row.names(buffalo@idData)[i],
+                 ".kml", sep=""),
+           row.names(buffalo@idData)[i], driver="KML")
+
+  writeOGR(as(buffalo[[i]], "SpatialLinesDataFrame"),
+         paste(row.names(buffalo@idData)[i],
+               "-track.kml", sep=""),
+         row.names(buffalo@idData)[i], driver="KML")
+
+  print(paste("Exported ", row.names(buffalo@idData)[i],
+            " successfully.", sep=""))
+}
+@
+\end{frame}
+ 
+\begin{frame}[fragile]{Download non-location data}
+Often tags record also non location data (e.g. acceleration, magnetometer, etc.), these can be also directly downloaded from Movebank, in two ways:\\
+\bigskip
+\textbf{1.} Download them along with the location data. The non location data will be stored in the UnUsedRecords slots of the move/moveStack object. With this option data of all available sensors are downloaded
+<<nonLocationMove, message=FALSE, eval=F>>=
+stork <- getMovebankData(study="MPIO white stork lifetime 
+                         tracking data (2013-2014)",login=cred,
+                         animalName="DER AR439",includeExtraSensors=TRUE)
+@
+\end{frame}
+ 
+\begin{frame}[fragile]{Download non-location data}
+<<nonLocationMovestr, message=FALSE, eval=F>>=
+str(stork)
+
+# --------------
+#   ..@ proj4string            :Formal class 'CRS' [package "sp"] with 1 slot
+#   .. .. ..@ projargs: chr "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0"
+#   ..@ timestampsUnUsedRecords: POSIXct[1:10], format: "2013-07-12 06:25:11" "2013-07-12 06:30:06" "2013-07-12 06:35:06" "2013-07-12 06:40:07" ...
+#   ..@ sensorUnUsedRecords    : Factor w/ 2 levels "Acceleration",..: 1 1 1 1 1 1 1 1 1 1
+#   ..@ dataUnUsedRecords      :'data.frame':	10 obs. of  21 variables:
+#   .. ..$ sensor_type_id                               : int [1:10] 2365683 2365683 2365683 2365683 2365683 2365683 2365683 2365683 2365683 2365683
+#   .. ..$ eobs_acceleration_axes                       : chr [1:10] "XYZ" "XYZ" "XYZ" "XYZ" ...
+#   .. ..$ eobs_acceleration_sampling_frequency_per_axis: num [1:10] 10.5 10.5 10.5 10.5 10.5 ...
+#   .. ..$ eobs_accelerations_raw                       : chr [1:10] "1921 1952 1536 1927 1950 1548 1936 1958 1537 1936 1956 1543 1924 1962 1544 1942 1945 1543 1927 1956 
+#  -------------
+@
+\end{frame}
+
+\begin{frame}[fragile]{Download non-location data}
+To extract the data frame containing the data for the non-location sensors:
+<<nonLocationMove2, message=FALSE, eval=F>>=
+stork.acc <- as.data.frame(unUsedRecords(stork))
+@
+\end{frame}
+
+\begin{frame}[fragile]{Download non-location data}
+\textbf{2.} Download data as a \texttt{data.frame}. Here also single sensors can be specified
+<<nonLocationDF, message=FALSE, eval=F>>=
+acc <- getMovebankNonLocationData(study="MPIO white stork lifetime 
+                                  tracking data (2013-2014)",
+                                  sensorID="Acceleration",
+                                  animalName="DER AR439", login=cred)
+@
+To find out which sensors are available in a specific study use:
+<<sensors, message=FALSE, eval=T>>=
+getMovebankSensors(study="MPIO white stork lifetime tracking data (2013-2014)",
+                   login=cred)[1:8,]
+
+@
+\end{frame}
+
+\begin{frame}[fragile]{Download non-location data}
+To see all available sensor types on Movebank and the correspondence between the id number and the name:
+<<sensors2, message=FALSE, eval=T>>=
+getMovebankSensors(login=cred)[,3:5]
+
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Download data from the Movebank Data Repository} 
+ You have also the possibility to download a published data set in the Movebank Data Repository (https://www.datarepository.movebank.org/).\bigskip
+ 
+ You just need the doi of the published data set, and will obtain a \texttt{move} or \texttt{moveStack} containing the all the data. The data of the non location sensors will be stored in the UnUsedRecords slots.
+ <<doi, message=FALSE, eval=F>>=
+getDataRepositoryData("doi:10.5441/001/1.2k536j54")
+ @
+\end{frame} 
+ 
+\begin{frame}[fragile]{Help} 
+More information:
+\begin{itemize}
+\item The help files of the functions in the move package will give you more detail about all the options and arguments
+\item The vignette "browseMovebank" contains all information on how to access Movebank data using R
+\end{itemize}
+\end{frame}
+ 
+\end{document}
