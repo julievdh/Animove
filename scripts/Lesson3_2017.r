@@ -4,19 +4,19 @@ setwd("/Users/julievanderhoop/Documents/R/Animove/Animove/")
 ###############
 
 library(move)
-bats <- move("Parti-colored bat Safi Switzerland.csv")
+bats <- move("./data/Parti-colored bat Safi Switzerland.csv")
 plot(bats)
 
 ################
 
 library(mapdata)
-library(scales)
-map('worldHires', col="grey", fill=T)
+library(scales) # can deal with overplotting: alpha sets transparency
+# map('worldHires', col="grey", fill=T) # this is plotting the whole world
 points(t(colMeans(coordinates(bats))), col=alpha('red',0.5), pch=16)
 points(t(colMeans(coordinates(bats))), col='cyan')
 ################
 
-(e<-bbox(extent(bats)*5))
+(e<-bbox(extent(bats)*5)) # set the bounding box 
 # note here that the brackets around the assignment 
 # ensure that the result is also printed to the console
 map('worldHires', xlim = e[1, ], ylim = e[2, ])
@@ -39,11 +39,11 @@ ggmap(m)+geom_path(data=bats_df, aes(x=location.long,
 
 ################
 
-load("buffalo_cleaned.Rdata")
-# Create gray scale
-buffaloGray<-gray((nrow(idData(buffalo))-1):0/nrow(idData(buffalo)))
+load("~/Documents/R/Animove/Animove/data/buffalo_cleaned.Rdata")
+# Create gray scale - different individuals have different gray shades
+buffaloGray<-gray((nrow(idData(buffalo))-1):0/nrow(idData(buffalo))) 
 # Plot with gray scale
-plot(buffalo, col=buffaloGray,
+plot(buffalo, col=buffaloGray, 
      xlab="Longitude", ylab="Latitude")
 
 ################
