@@ -63,7 +63,7 @@ env <- raster(leroy, vals = rnorm(100))
 
 # extract pixel values for where we have animal track 
 x <- extract(env, leroy) # now have one value for every line of leroy. Connect vector data to raster data 
-# plot leroy coloured by x? 
+plot(leroy,col = x+abs(min(x))) # because x has -ve values, have to correct and shift to begin at 0
 
 # 6 --- set value examples
 # lsat[] <- rnorm(ncell(lsat))
@@ -99,9 +99,18 @@ uc <- unsuperClass(allbands,nClasses = 5) # unsupervised classification
 plot(uc$map)
 
 ######## We've gone in to QGIS to make our polygons, to make our shape files, etc. 
-
+library(randomForest)
+allbands <- brick("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_1988.gri")
 # now import that file of spatial polygons -- training data
 td <- rgdal::readOGR("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/","trainingdata_1988")
-sc <- superClass(allbands,trainData = td, responseCol = "id")
+sc <- superClass(allbands,trainData = td, responseCol = "class_name")
 
+plot(sc$map)
 
+## can then validate this classification 
+
+##### Let's work on a moving window analysis
+rastervar <- focal(band1,w=matrix(1/9,ncol=3, nrow=3),fun=sd)
+ndvivar <- focal(ndvi,w=matrix(1/9,ncol=3, nrow=3),fun=sd)
+plot(rastervar)
+plot(ndvivar)
