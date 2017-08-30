@@ -75,4 +75,33 @@ x <- extract(env, leroy) # now have one value for every line of leroy. Connect v
 # calc()
 # KML()
 
+## calculating NDVI --- Martin Wegmann
+lsat <- brick("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_2011.gri")
+ndvi <- (lsat[[4]] - lsat[[3]])/(lsat[[4]] + lsat[[3]]) # for all layers
+
+# or can do it all separately
+band_3 <- raster("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_2011.gri", band = 3)
+band_4 <- raster("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_2011.gri", band = 4)
+
+ndvi_band <- (band_4 - band_3)/(band_4+band_3)
+
+plot(ndvi)
+plot(ndvi_band)
+
+# overlay the data on a plot instead
+ndvi <- overlay(band_4, band_3, fun = function(nir,red){(nir-red)/(nir+red)})
+
+# spectral indices
+ndvi <- spectralIndices(lsat,red = "B3_sre", nir = "B4_sre", indices = "NDVI")
+
+## Classification 
+uc <- unsuperClass(allbands,nClasses = 5) # unsupervised classification
+plot(uc$map)
+
+######## We've gone in to QGIS to make our polygons, to make our shape files, etc. 
+
+# now import that file of spatial polygons -- training data
+td <- rgdal::readOGR("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/","trainingdata_1988")
+sc <- superClass(allbands,trainData = td, responseCol = "id")
+
 
