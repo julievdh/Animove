@@ -28,5 +28,51 @@ plot(azores)
 prec_az1 <- crop(aprec,azores) # crop the precipitation to the azores 
 spplot(prec_az1)
 
+## --- R and Raster Data --- Benny 
+# RGIS tutorial available 
+
+# 1 --- import rasters - using data from book 
+band1 <- raster("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_1988_masked.gri", band =1)
+band2 <- raster("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_1988_masked.gri", band =2)
+
+# 2 --- combine rasters
+allbands <- stack(band1,band2)
+# or can stack directly from files: stack(c("/path/fileA.tif","/path/fileB/tif"))
+allbands <- brick("/Users/julievanderhoop/Documents/R/Animove/data_book/raster_data/final/p224r63_1988_masked.gri")
+
+# 3 --- plot with different band ocmbinations
+plotRGB(allbands, 3,2,1)
+plotRGB(allbands, 3,2,1, stretch = "lin") # color stretch 
+# can crop
+ext <- drawExtent()
+band2.crop <- crop(band2,ext)
+ext <- ext*2 # change size of extent 
+
+# or use GGplot
+library(RStoolbox)
+ggRGB(allbands, 3, 2, 1, stretch = "lin")
+ggR(allbands, layer = 4)
+
+# 4 --- Raster statistics 
+# cellStats, summary, moran, zonal, quantile, freq 
+# example: cellStats(allbands,stat = "mean") 
+
+# 5 --- get value from raster
+data(lsat); data(leroy)
+env <- raster(leroy, vals = rnorm(100))
+
+# extract pixel values for where we have animal track 
+x <- extract(env, leroy) # now have one value for every line of leroy. Connect vector data to raster data 
+# plot leroy coloured by x? 
+
+# 6 --- set value examples
+# lsat[] <- rnorm(ncell(lsat))
+# lsat[lsat < 0] <- NA # set all to NA
+
+# 7 --- transformation, weight averages, resample, reprojecting etc. Examples in presentation 
+# 8 --- you need special saving functions 
+# writeRaster(your_raster, datatype = "FLT4S", filename = "new_data.tif", format = "GTiff", overwrite = TRUE)
+# calc()
+# KML()
 
 
