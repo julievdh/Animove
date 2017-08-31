@@ -32,7 +32,7 @@ head(individualData) # some great descriptive statistics of the trajectories to 
 
 ###########
 
-summary(bats) # 
+summary(bats)  
 
 ########### include reference data - merge sex of individual
 
