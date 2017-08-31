@@ -1,18 +1,21 @@
+# how do our animals function in relation to environmental resources? 
+# put trajectories into context 
 
 require(raster)
 empty <- raster(xmn=-180, xmx=180, ymn=-90, ymx=90, 
                 resolution=0.1, crs="+proj=longlat +datum=WGS84")
-empty
+empty # create an empty raster - useful as a template to cut things, calculate things on
 
 
-######
-Obj1 <- data.frame(x=c(-1, 0, 1), y=c(0, 1, 0), pID=c("A", "B", "C"))
-coordinates(Obj1) <- ~x+y
+###### Creating spatial objects: what were conditions in specific place? 
+Obj1 <- data.frame(x=c(-1, 0, 1), y=c(0, 1, 0), # give coordinates
+                   pID=c("A", "B", "C")) # give some attributes
+coordinates(Obj1) <- ~x+y # define x and y as coordinates
 projection(Obj1) <- CRS("+proj=longlat +datum=WGS84")
 str(Obj1)
 
 
-#####
+##### download info from the web - similar to getData
 
 dir.create("DEM")
 download.file("http://biogeo.ucdavis.edu/data/climate/worldclim/1_4/grid/cur/alt_10m_bil.zip", 
@@ -23,7 +26,7 @@ unzip("DEM/alt_10m_bil.zip", exdir="./DEM/alt_10m")
 
 require(raster)
 dem <- raster("DEM/alt_10m/alt.bil")
-plot(dem, col=terrain.colors(256))
+plot(dem, col=terrain.colors(256)) 
 
 require(mapdata)
 map("worldHires", add=T)
@@ -44,14 +47,15 @@ image(DEMsub, col=alpha(terrain.colors(256), 0.66), add=T)
 
 ######
 require(move)
-Leo <- move("Leo-65545.csv.gz")
-elev <- extract(dem, Leo, method="bilinear")
+Leo <- move("./data/Leo-65545.csv.gz")
+elev <- extract(dem, Leo, method="bilinear") # overlay on raster and extract values. linear interpolation
 plot(elev~timestamps(Leo), type="l",
      xlab="Distance [km]", ylab="Elevation [m]")
+# leo overwinters on coast, sometimes crosses very high things... 
 
-Leo$Elevation <- elev
+Leo$Elevation <- elev 
 
-#############
+############# Global Land Cover
 dir.create("GLC")
 download.file("http://due.esrin.esa.int/files/Globcover2009_V2.3_Global_.zip", 
               destfile="./GLC/Globcover2009_V2.3_Global_.zip")
@@ -65,8 +69,8 @@ require(raster)
 require(readxl)
 GLC <- raster("GLC/GLC09/GLOBCOVER_L4_200901_200912_V2.3.tif")
 glc <- crop(GLC, extent(Leo)*1.5, filename="./GLC/cropped_GlobCover09", overwrite=TRUE)
-ratt <- read_excel("GLC/GLC09/Globcover2009_Legend.xls")
-ratt$col <- rgb(cbind(ratt$Red, ratt$Green, ratt$Blue), maxColorValue = 255)
+ratt <- read_excel("GLC/GLC09/Globcover2009_Legend.xls") # have to read in excel 
+ratt$col <- rgb(cbind(ratt$Red, ratt$Green, ratt$Blue), maxColorValue = 255) # remap land cover types
 names(ratt) <- c("ID", "landcover", "r", "g", "b", "col")
 levels(glc) <- ratt
 row.names(ratt) <- ratt$ID
@@ -81,19 +85,21 @@ legend("topright", c("Closed to open herbaceous vegetation",
                      "Closed to open mixed forest",
                      "Closed broadleaved deciduous forest"),
        pch=rep(16,5),
-       col=ratt[names(sort(summary(as.factor(extract(glc, Leo))), decreasing=T)[1:5]), "col"],
+       # col=ratt[names(sort(summary(as.factor(extract(glc, Leo))), decreasing=T)[1:5]), "col"],
        cex=0.66)
 
+# these are static maps so easy to overlay/extract
 
 ##############
 
-###################
+################### What about extracting from time series? Extracting from raster stacks
+# or interpolating between layers in space and time, can be weighted
 dir.create("MeanTemp")
 download.file("http://biogeo.ucdavis.edu/data/climate/worldclim/1_4/grid/cur/tmean_10m_bil.zip", 
               destfile="./MeanTemp/tmean_10m_bil.zip")
 unzip("MeanTemp/tmean_10m_bil.zip", exdir="./MeanTemp/MeanTemp10Deg")
 MeanT <- list()
-for(i in 1:12)
+for(i in 1:12) # compare month of layer and month of locations 
 {
   tmp <- raster(paste("MeanTemp/MeanTemp10Deg/tmean", i, ".bil", sep=""))
   MeanT <- c(MeanT, list(tmp))
@@ -105,6 +111,8 @@ Leo$meanT <- mapply(function(i, j) annualT[i,j], 1:nrow(annualT), month(timestam
 hist(Leo$meanT, breaks="FD")
 plot(Leo$meanT~yday(timestamps(Leo)), type="l")
 
+# year-day temp high in jan, leo goes to cooler temperatures in summer
+# spends winter in areas warmer than summers
 
 ##########################
 library(move)
@@ -112,10 +120,10 @@ library(raster)
 library(adehabitatHR)
 library(adehabitatHS)
 #read the bat data
-bats <- move("Parti-colored bat Safi Switzerland.csv")
+bats <- move("./data/Parti-colored bat Safi Switzerland.csv")
 
-#read the landuse data as csv and adjust the separator
-nlcd <- read.csv("gd-b-00.03-37-noas04G/AREA_NOAS04_17_131004.csv", as.is=T, sep=";")
+#read the landuse data as csv and adjust the separator -- KAMI WILL SEND FILE. Land use data from Swiss statistics center
+nlcd <- read.csv("./data/AREA_NOAS04_17_131004.csv", as.is=T, sep=";")
 #select the landuse classification for the year 1997 in 17 categories
 nlcd <- nlcd[,c("X", "Y", "AS97R_17")]
 #convert into a raster and declare the Swiss grid projection
@@ -124,15 +132,15 @@ nlcd <- rasterFromXYZ(nlcd, crs = CRS("+proj=somerc +lat_0=46.95240555555556
                                       +y_0=200000 +ellps=bessel 
                                       +units=m +no_defs"))
 #project the bat data into the projection of the raster data
-batsProj <- spTransform(bats, projection(nlcd))
+batsProj <- spTransform(bats, projection(nlcd)) # now projecting the projected points
 #overlay points with raster and count the ocurrences per individual
 
 #urbanised areas
-nlcd[nlcd%in%c(1,2,3,4,5)] <- 1
+nlcd[nlcd%in%c(1,2,3,4,5)] <- 1 # replace things cleverly :) 
 #agricultural areas
-nlcd[nlcd%in%c(6,7,8,9)] <- 2
+nlcd[nlcd%in%c(6,7,8,9)] <- 2 
 #forest
-nlcd[nlcd%in%c(10,11,12,15)] <- 3
+nlcd[nlcd%in%c(10,11,12,15)] <- 3 
 #lakes and rivers
 nlcd[nlcd%in%c(13,14)] <- 4
 #unproductive alpine areas
@@ -141,16 +149,16 @@ nlcd[nlcd%in%c(16,17)] <- 5
 
 freqLoc <- lapply(lapply(split(batsProj), function(x) extract(nlcd, x, method="simple")), table)
 #convert to spdf, calculate the 95\% mcp, overlay with the raster and count the number of ocurrences per individual
-freqMCP <- lapply(lapply(lapply(lapply(split(batsProj), as, "SpatialPointsDataFrame")
+freqMCP <- lapply(lapply(lapply(lapply(split(batsProj), as, "SpatialPointsDataFrame") # SPLIT THE MOVESTACK
                                 , mcp)
-                         , function(x) extract(nlcd, x, method="simple"))
-                  , table)
+                         , function(x) extract(nlcd, x, method="simple")) # EXTRACT LAND COVER DATA
+                  , table) # TABLE THAT
 #set the categories that did not appear to 0
 freqLocFilled <- lapply(freqLoc, function(x) {templ <- rep(0, 5); templ[as.numeric(names(x))] <- x; return(templ)})
 # do the same with the categories in the mcps that did not occur
 freqMCPFilled <- lapply(freqMCP, function(x) {templ <- rep(0, 5); templ[as.numeric(names(x))] <- x; return(templ)})
 # calculate the proportions
-PropLoc <- t(mapply("/", freqLocFilled, lapply(freqLocFilled, sum)))
+PropLoc <- t(mapply("/", freqLocFilled, lapply(freqLocFilled, sum))) # proportion used versus available
 PropMCP <- t(mapply("/", freqMCPFilled, lapply(freqMCPFilled, sum)))
 
 # derive percentages
@@ -161,8 +169,8 @@ PctMCP <- 100 * PropMCP
 freqLocFilled <- do.call("rbind", freqLocFilled)
 freqMCPFilled <- do.call("rbind", freqMCPFilled)
 
-# read movement data
-bats_ref <- read.csv("Parti-colored bat Safi Switzerland-reference-data.csv", sep=",", as.is=TRUE)
+# read movement reference for sexes
+bats_ref <- read.csv("./data/Parti-colored bat Safi Switzerland-reference-data.csv", sep=",", as.is=TRUE)
 # keep only observations with known attributes
 bats_ref <- bats_ref[!is.na(bats_ref$animal.id), 
                      c("animal.id", "animal.sex")]
@@ -178,7 +186,7 @@ N$id <- row.names(N)
 bats_ref <- merge(bats_ref, N, by="id")
 row.names(bats_ref) <- bats_ref$id
 # identify which bats to keep and which to drop from analysis
-dropList <- bats_ref$id[bats_ref$N<50]
+dropList <- bats_ref$id[bats_ref$N<50] # keep only those who have > 50 locations
 bats_ref <- bats_ref[bats_ref$N>50,]
 
 # reduce the proprtions to only those individuals that will be retained
@@ -202,23 +210,23 @@ abline(v=0)
 abline(h=0)
 legend("topright", c("Female", "Male"), pch=c(4,5))
 
-####
+#### Compositional analysis
 
 PctLocF <- PctLoc[row.names(bats_ref[bats_ref$sex=="f",]),]
 PctMCPF <- PctMCP[row.names(bats_ref[bats_ref$sex=="f",]),]
 HS_F <- compana(PctLocF[,-5], PctMCPF[,-5], nrep = 10000)
-HS_F$test
+HS_F$test # NSD means they are using land categories as they present themselves, as they appear. 
 
 PctLocM <- PctLoc[row.names(bats_ref[bats_ref$sex=="m",]),]
 PctMCPM <- PctMCP[row.names(bats_ref[bats_ref$sex=="m",]),]
 HS_M <- compana(PctLocM[,-5], PctMCPM[,-5], nrep = 10000)
-HS_M$test
+HS_M$test # males have land use associations significantly different than what is available to them
 
 sort(HS_M$rank, decreasing = T)
-HS_M$rm
+HS_M$rm # appear over water more than we would expect
 
 
-########
+######## IF THE BATS WENT IN A STRAIGHT LINE ONLY, WHAT WOULD BE AVAILABLE WITHIN A DAY'S TRAVEL?
 # select for females
 FemaleBats <- batsProj[batsProj@trackId %in% bats_ref[bats_ref$sex=="f","id"],] 
 # calculate daily distance
@@ -235,8 +243,12 @@ PctStudyF <- do.call("rbind", lapply(freqStudyFilled, function(x) x/sum(x)*100))
 HS_II_F <- compana(PctMCPF[,-5], PctStudyF[,-5], nrep = 10000)
 # output the test statistics
 HS_II_F$test
-sort(HS_II_F$rank, decreasing = T)
+sort(HS_II_F$rank, decreasing = T) # 4 is WAY over represented compared to what would be expected within a day's travel
+# females are highly selective to a central location, fill MCP; males highly selective WITHIN MCP. 
+# males and females select at different levels. 
 HS_II_F$rm
+
+## LUNCH 
 
 #####
 plot(nlcd, col=c("grey", "forestgreen", "wheat", "blue", "white"),
