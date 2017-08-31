@@ -54,8 +54,30 @@ img_captionsw <- "Projection: Geographical, WGS84; Sources: Movebank 2013; Googl
 animate_move(swstack, out_dir, conv_dir,
              paths_mode = "simple", # start all the whales at the same time
              out_name = "swfinal_gif", # change output file title
-             frames_interval = 1, # change the frame rate
-             img_title = img_titlesw, img_subsw = img_sub, img_captionsw = img_caption,
+             frames_interval = 0.4, # change the frame rate
+             img_title = img_titlesw, img_sub = img_subsw, img_caption = img_captionsw,
+             frames_nmax = 50)
+## add bathymetry
+library(marmap)
+b <- getNOAA.bathy(lon1 = floor(min(swstack@data$lon)), 
+                   lon2 = ceiling(max(swstack@data$lon)), 
+                   lat1 = floor(min(swstack@data$lat)), 
+                   lat2 = ceiling(max(swstack@data$lat)), 
+                   resolution = 1) #set your min and max long/lat here and your resolution
+b2 <- as.raster(b)
+b2[b2 > 0 ] <- 0 
+
+# make a static basemap with bathymetry
+layersw = list(b2)
+layersw_dt = list(swstack@timestamps[1]) # choose one time within the entire series
+
+
+animate_move(swstack, out_dir, conv_dir,
+             paths_mode = "simple", # start all the whales at the same time
+             out_name = "swfinal_gif", # change output file title
+             frames_interval = 0.4, # change the frame rate
+             layer = layersw, layer_dt = layersw_dt, layer_type = "gradient", # bathymetry
+             img_title = img_titlesw, img_sub = img_subsw, img_caption = img_captionsw,
              frames_nmax = 50)
 
 #(b) Use a different path mode and check out the difference: simple
@@ -99,7 +121,7 @@ animate_move(data_ani, out_dir, conv_dir,
              paths_mode = "true_data",
              img_title = img_title, img_sub = img_sub, img_caption = img_caption,
              frames_nmax = 50,
-             extent_factor = 0.0002) #higher the difference between your move data extent and the map extent
+             extent_factor = 0.0002) # higher the difference between your move data extent and the map extent
 
 
 
