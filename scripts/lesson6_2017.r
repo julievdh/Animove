@@ -244,12 +244,18 @@ lines(leroy, col="#00000030")
 text(0,3000,"k-NNCH LoCoH for k=50", pos=4, cex=0.75)
 legend(-1636, -2018, as.character(unique((iso.info.all$iso.level))), fill=grey((0.7*seq(0.1,0.99,length=5))), cex=0.6, bty="n")
 
-###########
+########### Brownian Bridges
 
 library(move)
 leroy <- move(system.file("extdata","leroy.csv.gz",package="move"))
-leroy <- spTransform(leroy, center=TRUE)
-BB.leroy <- brownian.bridge.dyn(leroy, ext=2, dimSize=150, location.error=100, margin=21, window.size=99, time.step=2)
+leroy <- spTransform(leroy, center=TRUE) # center projection to minimize distortion - notice the locations are centered on (0,0)
+BB.leroy <- brownian.bridge.dyn(leroy, ext=2, 
+                                dimSize=150, 
+                                location.error=100, # in map units -- CAN MAKE THIS A VECTOR OF E.G. ARGOS ERRORS
+                                margin=21,  # 21 locations - size of which we cannot calculate break points -- WHAT IS THE TIME/SPACE RANGE THAT ANIMAL CHANGE BEHAVIOUR?
+                                window.size=99, # larger window = less likely to find spurious changes -- 99 is ~ 1 day for Leroy
+                                time.step=2)
+# always need odd numbers to leave one out. Documentation has improved recently
 udleroy <- getVolumeUD(BB.leroy)
 plot(leroy, col="#00000060", pch=16, cex=0.5,
      bty="n", xaxt="n", yaxt="n", xlab=NA, ylab=NA)
@@ -263,12 +269,12 @@ par(mfrow=c(3,3), mar=c(1,2,2,1))
 margins <- c(15, 9, 3)
 windows <- c(101, 67, 33)
 runs <- expand.grid(margins, windows)
-for(i in 1:nrow(runs))
+for(i in 1:nrow(runs)) # error here - wants a larger raster - probabilities are at border of raster
 {
   BB.leroy <- brownian.bridge.dyn(leroy, dimSize=150, 
                                   location.error=100, 
                                   margin=runs[i,1], window.size=runs[i,2], 
-                                  time.step=2)
+                                  time.step=2) # add ext = 2, for example. -- extends extent of raster by factor
   udleroy <- getVolumeUD(BB.leroy)
   contour(udleroy, levels=c(0.5, 0.95), bty="n", xaxt="n", 
           yaxt="n", xlab=NA, ylab=NA, asp=1)
@@ -276,7 +282,7 @@ for(i in 1:nrow(runs))
   mtext(paste("Window size = ", runs[i,2]), 3)
 }
 
-###########
+########### DBB will be strongly influenced by sampling rate 
 
 par(mfrow=c(1,1))
 par(list(mar=c(5, 4, 4, 2) + 0.1), bty="o")
@@ -299,6 +305,8 @@ lines(I(unlist(ShortAreas)/max(unlist(ShortAreas)))~seq(1:100),
 abline(h=1)
 legend("topright", c("Thinned trajectory", "Shortened trajectory"), 
        lty=c(1,2), lwd=c(2,2), bty="n")
+# method we are using is intended to give us info on place where animal was when we did not observe it
+# when we increase sample rate, we know where animal was at any given point in time -- this area becomes smaller
 
 ###########
 
