@@ -1,22 +1,31 @@
-library(adehabitatHR)
+setwd("/Users/julievanderhoop/Documents/R/Animove/Animove/")
+
+###############
+
+library(move)
+bats <- move("./data/Parti-colored bat Safi Switzerland.csv")
+
+
+library(adehabitatHR) # uses spatial points data frames and l-track 
 X330 <- bats[["X330"]]
-X330$id <- "X330"
-mcpX330<-mcp(as(X330[,'id'], 'SpatialPointsDataFrame'))
+X330$id <- "X330" # package needs an id field 
+mcpX330<-mcp(as(X330[,'id'], 'SpatialPointsDataFrame')) # minimum convex polygons -- encloses points within area. converts move -> spatial data frame within mcp 
 plot(X330, type="n", bty="na", xlab="Longitude", ylab="Latitude")
 plot(mcpX330, col="grey90", lty=2, lwd=1.25, add=TRUE)
 points(X330, pch=16)
 points(X330, pch=1, col="white")
 legend("topright", as.character("95% MCP"), fill="grey90", bty="n")
-
+# there are two points outside of MCP -- assumes by default you want 95% of points only. 
+# we lose the temporal domain, here. 
 ###########
 
 library("rgeos")
 bats$id <- trackId(bats) 
 mcpData<-mcp(as(bats[,'id'],'SpatialPointsDataFrame'))
-#first option
+#first option -- calculate MCP then project polygon
 bats.proj <- spTransform(bats, CRS("+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +x_0=600000 +y_0=200000 +ellps=bessel +units=m +no_defs"))
 mcpData.proj <- mcp(as(bats.proj[, 'id'],'SpatialPointsDataFrame'))
-#second option
+#second option -- project then calculate
 projection(mcpData) <- CRS("+proj=longlat +datum=WGS84")
 mcpData <- spTransform(mcpData, CRS("+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +x_0=600000 +y_0=200000 +ellps=bessel +units=m +no_defs"))
 plot(bats.proj[["X21"]], bty="na", xlab="Longitude", ylab="Latitude")
@@ -25,28 +34,33 @@ plot(mcpData[mcpData$id=="X21",], add=TRUE, lty=2)
 legend("bottomleft", c("First reproject then mcp", "First mcp then reproject"), lty=c(1,2), bty="n")
 
 legend("topleft", sprintf("Area = %.2f", c(gArea(mcpData.proj, byid=TRUE)["X21"],gArea(mcpData, byid=TRUE)["X21"])/1000^2), lty=c(1,2), bty="n")
-
+# because MCP calculates distances, the two methods have different results. 
+# One is being calculated in meters, other in degrees
+# METERS is better -- REPROJECT DATA FIRST. 
 ###########
 
-hrBootstrap(bats[['X21']], rep=500, levelMax=95)
+hrBootstrap(bats[['X21']], rep=500, levelMax=95) # discovery curve
 
 ###########
 
 library(raster)
 template <- raster(extent(split(bats.proj)[[1]]))
-res(template)<-500
-count <- rasterize(split(bats.proj)[[1]], template,field=1,  fun="count")
+res(template)<-500 # resolution
+count <- rasterize(split(bats.proj)[[1]], template,field=1,  fun="count") 
+# rasterize translates between spatial objects, counts n points in each raster cell 
 plot(count, col=grey(10:0/12))
 plot(mcpData.proj[1,], add=TRUE)
 points(bats.proj[[1]], pch=16, cex=0.5)
+# area of MCP is growing as collect data, 
 
-###########
+########### Use kernels instead -- 2D probability distribution
+# CLASSIC method assumes points are independent. CHRIS's method acknowledges autocorrelation
 
-X21 <- bats.proj[['X21']]
-kern1 <- kernelUD(as(X21, "SpatialPoints"), h=500)
+X21 <- bats.proj[['X21']] 
+kern1 <- kernelUD(as(X21, "SpatialPoints"), h=500) # trying different h = smooth factors
 kern2 <- kernelUD(as(X21, "SpatialPoints"))
 kern3 <- kernelUD(as(X21, "SpatialPoints"), h=2000)
-kern4 <- kernelUD(as(X21, "SpatialPoints"), h="LSCV")
+kern4 <- kernelUD(as(X21, "SpatialPoints"), h="LSCV") # least-squares cross validation -- inappropriate with autocorrelated data
 par(mfrow=c(2,2))
 par(mar=c(1,0.5,3,0.5))
 kern <- c("kern1", "kern2", "kern3", "kern4")
@@ -65,7 +79,7 @@ for(i in 1:4)
 
 ###########
 
-library(ks) 
+library(ks) # can be used to calculate bandwitdh kernels -- kernel smoothers
 library(scales)
 pos <- coordinates(X21)
 H.bcv <- Hbcv(x=pos)
@@ -90,7 +104,7 @@ for(i in 1:4)
   title(hT[i])
 }
 
-###########
+########### What if we make lots of small polygons and combine those? LOCAL Convex Polygon
 
 par(list(mfrow=c(2,2), mar=c(2,2,2,2)))
 library(move)
@@ -99,24 +113,28 @@ library(adehabitatHR)
 leroy <- spTransform(leroy, center=TRUE)
 
 leroy.mcp <- mcp(as(leroy, "SpatialPoints"), percent=95)
-plot(leroy.mcp, col=grey(0.9), lty=2, lwd=2)
+plot(leroy.mcp, col=grey(0.9), lty=2, lwd=2) # original MCP 
 points(leroy, col="#00000060", pch=16, cex=0.5)
 lines(leroy, col="#00000030")
 title("Minimum convex polygon")
 
-kLoc <- LoCoH.k(as(leroy, "SpatialPoints"), 75)
+kLoc <- LoCoH.k(as(leroy, "SpatialPoints"), 75) # based on k neighbours - are sequential in time
 plot(kLoc, col=grey((0:length(kLoc)/length(kLoc))*0.7), border=NA)
 title("k-NNCH LoCoH")
+# much more structure in movement
 
-rLoc <- LoCoH.r(as(leroy, "SpatialPoints"), 800)
+rLoc <- LoCoH.r(as(leroy, "SpatialPoints"), 800) # these are the radii 
 plot(rLoc, col=grey((0:length(rLoc)/length(rLoc))*0.7), border=NA)
-title("r-NNCH LoCoH")
+title("r-NNCH LoCoH") # based on a radius - not subsequent but close together in space
 
 aLoc <- LoCoH.a(as(leroy, "SpatialPoints"), 9000)
 plot(aLoc, col=grey((0:length(aLoc)/length(aLoc))*0.7), border=NA)
-title("a-NNCH LoCoH")
+title("a-NNCH LoCoH") # based on max number of neighbours where sum of distances is <= a
 
-###########
+# LoCoH has great tutorials with visualisation etc. 
+
+########### These thresholds can really affect the measurements of space use estimation
+# websites through LoCoH to talk about threshold selection: 
 
 ######par(mfrow=c(1,3))
 kLocArea <- LoCoH.k.area(as(leroy, "SpatialPoints"), 
@@ -201,7 +219,7 @@ points(leroy, col="#00000060", pch=16, cex=0.5)
 lines(leroy, col="#00000030")
 title(expression(paste("a-NNCH LoCoH for ", a <= 9000, sep="")))
 
-###########
+########### Isopleths
 
 par(mfrow=c(1,2))
 par(list(mar=c(5, 6, 4, 2) + 0.1), bty="n")
