@@ -12,7 +12,7 @@ library(moveVis); library(move); library(raster)
 
 #[2] DATA ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #Get the sample movement data from the moveVis package
-data("move_data")
+data("move_data") # white stork data package -- data frame
 
 #Convert the timestamps to the POSIXct format
 move_data$dt <- as.POSIXct(strptime(move_data$dt, "%Y-%m-%d %H:%M:%S", tz = "UTC"))
@@ -28,8 +28,7 @@ data_ani <- move(move_data$lon, move_data$lat, proj=CRS("+proj=longlat +ellps=WG
 conv_dir <- get_imconvert() #or: conv_dir <- "/dir/to/convert"
 
 #Specify output directory
-out_dir <- "C:/Users/Jakob/Documents/wd/JMU_EAGLE_MSc/hiwi/" #or
-out_dir <- "/home/jakob/Dokumente/wd/JMU_EAGLE_MSc/hiwi/out"
+out_dir <- "/Users/julievanderhoop/Documents/R/Animove/Animove/" #or
 
 #Specify some optional appearance variables such as title etc.
 img_title <- "Movement of the White Stork population at Lake Constance, Germany"
@@ -37,12 +36,26 @@ img_sub <- paste0("including individuals ",paste(rownames(idData(data_ani)), col
 img_caption <- "Projection: Geographical, WGS84; Sources: Movebank 2013; Google Maps"
 
 
-
 #[6] CALLING animate_move() ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #(a) Let's create a simple animation first, paths mode: true_data
 animate_move(data_ani, out_dir, conv_dir,
              paths_mode = "true_data",
              img_title = img_title, img_sub = img_sub, img_caption = img_caption,
+             frames_nmax = 50)
+
+## TRY IT 
+load("./data/swstack.RData")
+plot(swstack)
+#Specify some optional appearance variables such as title etc.
+img_titlesw <- "Movement of sperm whales in the Azores, sw17"
+img_subsw <- paste0("Individuals ",paste(rownames(idData(swstack)), collapse=', '))
+img_captionsw <- "Projection: Geographical, WGS84; Sources: Movebank 2013; Google Maps"
+
+animate_move(swstack, out_dir, conv_dir,
+             paths_mode = "simple", # start all the whales at the same time
+             out_name = "swfinal_gif", # change output file title
+             frames_interval = 1, # change the frame rate
+             img_title = img_titlesw, img_subsw = img_sub, img_captionsw = img_caption,
              frames_nmax = 50)
 
 #(b) Use a different path mode and check out the difference: simple
@@ -80,7 +93,7 @@ img_caption <- "Projection: Geographical, WGS84; Sources: Movebank 2013; MODIS N
 
 
 #[8] CALLING animate_move() ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#(a) Tell animate_move(), what type of layer you are using: gradient
+#(a) Tell animate_move(), what type of layer you are using: gradient 
 animate_move(data_ani, out_dir, conv_dir,
              layer = layer,layer_dt = layer_dt, layer_type = "gradient",
              paths_mode = "true_data",
@@ -91,7 +104,7 @@ animate_move(data_ani, out_dir, conv_dir,
 
 
 #[9] ADDING STATIC POINTS ON TOP OF THE MAP ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#Create a data.frame
+#Create a data.frame -- reference points, e.g. 
 static_data <- data.frame(x = c(8.94,8.943), y = c(47.75,47.753), names = c("Station 1","Station 2"))
 
 
