@@ -1,3 +1,5 @@
+$ cat .gitignore
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -48,7 +50,7 @@ Temporary Items
 .Rproj.user
 
 ## big files
-.csv
-.zip
-.gif
-.pdf
+*.csv
+*.zip
+*.gif
+*.pdf
