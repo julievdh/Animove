@@ -12,17 +12,18 @@ data$cityCTRY <- do.call(paste, c(data[c("Location", "Country")], sep = ", "))
   
 # get coordinates for names
 raceGeo <- geocode(data$cityCTRY[1:4], output='all', messaging=TRUE, override_limit=TRUE)
+raceGeoshort <- geocode(data$cityCTRY, output = 'latlon')
 
-lat <- c()
-lon <- c()
+#lat <- c()
+#lon <- c()
 
-for (row in 1:length(raceGeo)) {
-lat[row] <- raceGeo[[row]]$results[[1]]$geometry$location$lat
-lon[row] <- raceGeo[[row]]$results[[1]]$geometry$location$lng
-}
+#for (row in 1:length(raceGeo)) {
+#lat[row] <- raceGeo[[row]]$results[[1]]$geometry$location$lat
+#lon[row] <- raceGeo[[row]]$results[[1]]$geometry$location$lng
+#}
 
-raceLoc <- data.frame(lat = lat, lon = lon)
+#raceLoc <- data.frame(lat = lat, lon = lon)
 
 
 #make a map
-qmplot(lon, lat, data = raceLoc, maptype = "watercolor", color = I("red")) + geom_path(color = "red")
+qmplot(lon, lat, data = raceGeoshort, maptype = "watercolor", color = I("red")) + geom_path(color = "red")
