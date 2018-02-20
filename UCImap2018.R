@@ -27,3 +27,13 @@ raceGeoshort <- geocode(data$cityCTRY, output = 'latlon')
 
 #make a map
 qmplot(lon, lat, data = raceGeoshort, maptype = "watercolor", color = I("red")) + geom_path(color = "red")
+
+## try interactive
+library(plotly)
+library(ggplot2)
+
+data(canada.cities, package="maps")
+p <- ggplot(canada.cities, aes(long, lat)) +
+  coord_equal() 
+ # geom_point(aes(text=canada.cities$name, size=canada.cities$pop), colour="red", alpha=1/2, name="cities")
+p <- ggplotly(p)
