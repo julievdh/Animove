@@ -2,7 +2,11 @@
 
 library(ggmap) # for geocoding and plotting 
 library(geosphere) # for distance calculations
-library(knitr) # for making a nice table
+library(RJSONIO)
+library(RCurl)
+library(plotly)
+library(ggplot2)
+
 
 # load data
 data <- read.csv("UCI2018.csv",header=FALSE, stringsAsFactors=FALSE, fileEncoding="latin1")
@@ -11,29 +15,31 @@ colnames(data) = c("date","Race","Location","Country","Class")
 data$cityCTRY <- do.call(paste, c(data[c("Location", "Country")], sep = ", ")) 
   
 # get coordinates for names
-raceGeo <- geocode(data$cityCTRY[1:4], output='all', messaging=TRUE, override_limit=TRUE)
-raceGeoshort <- geocode(data$cityCTRY, output = 'latlon')
 
-#lat <- c()
-#lon <- c()
+getGeoData <- function(location){
+location <- gsub(' ','+',location)
+geo_data <- getURL(paste("https://maps.googleapis.com/maps/api/geocode/json?address=",location,"&key=AIzaSyB_3udGBiWkWidY8fPLMJ6VONxrth0UAVs", sep=""))
+raw_data_2 <- fromJSON(geo_data)
+return(raw_data_2)
+}
+getGeoData(data$cityCTRY[1])
 
-#for (row in 1:length(raceGeo)) {
-#lat[row] <- raceGeo[[row]]$results[[1]]$geometry$location$lat
-#lon[row] <- raceGeo[[row]]$results[[1]]$geometry$location$lng
-#}
+geocoded <- data.frame(stringsAsFactors = FALSE)
+for(i in 1:nrow(data))
+{
+  
+  test <- getGeoData(data$cityCTRY[i])
+  data$lon[i] <- as.numeric(test$results[[1]]$geometry$location[2])
+  data$lat[i] <- as.numeric(test$results[[1]]$geometry$location[1])
+  
+}
 
-#raceLoc <- data.frame(lat = lat, lon = lon)
+q <- ggplot(data, aes(lon, lat)) +
+  coord_equal() +
+  borders("world", colour="gray70", fill="gray90") +
+  geom_point(aes(text=paste(Race,date)), colour="red", alpha=1/2, name="UCI 2018")
+  #scale_colour_gradient(low = "#132B43", high = "#56B1F7", space = "Lab", na.value = "grey50", guide = "colourbar")
 
+q <- ggplotly(q)
+q
 
-#make a map
-qmplot(lon, lat, data = raceGeoshort, maptype = "watercolor", color = I("red")) + geom_path(color = "red")
-
-## try interactive
-library(plotly)
-library(ggplot2)
-
-data(canada.cities, package="maps")
-p <- ggplot(canada.cities, aes(long, lat)) +
-  coord_equal() 
- # geom_point(aes(text=canada.cities$name, size=canada.cities$pop), colour="red", alpha=1/2, name="cities")
-p <- ggplotly(p)
